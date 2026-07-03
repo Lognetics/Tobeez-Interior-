@@ -1,0 +1,153 @@
+// TOBEEZ INTERIOR — data model
+// Dev uses SQLite for zero-config. To move to PostgreSQL, change the
+// datasource provider to "postgresql" and set DATABASE_URL accordingly.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CLIENT
+  DESIGNER
+  ADMIN
+}
+
+enum ProjectStatus {
+  PLANNING
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+}
+
+enum ConsultationMode {
+  VIRTUAL
+  PHONE
+  PHYSICAL
+}
+
+enum ConsultationStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String
+  role          Role           @default(CLIENT)
+  avatarUrl     String?
+  phone         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  projects      Project[]
+  estimates     Estimate[]
+  consultations Consultation[] @relation("ClientConsultations")
+  designerProfile Designer?
+  orders        Order[]
+  reviews       Review[]
+}
+
+model Designer {
+  id          String         @id @default(cuid())
+  userId      String         @unique
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  bio         String?
+  rating      Float          @default(0)
+  projectsDone Int           @default(0)
+  hourlyRate  Int            @default(0)
+  specialties String         // JSON-encoded string[] (SQLite has no arrays)
+  consultations Consultation[] @relation("DesignerConsultations")
+}
+
+model Project {
+  id         String        @id @default(cuid())
+  name       String
+  ownerId    String
+  owner      User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  status     ProjectStatus @default(PLANNING)
+  budget     Int           @default(0)
+  progress   Int           @default(0)
+  category   String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  estimates  Estimate[]
+}
+
+model Estimate {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId    String?
+  project      Project? @relation(fields: [projectId], references: [id])
+  input        String   // JSON-encoded EstimatorInput
+  currency     String   @default("NGN")
+  recommended  Int
+  min          Int
+  max          Int
+  createdAt    DateTime @default(now())
+}
+
+model Consultation {
+  id         String             @id @default(cuid())
+  clientId   String
+  client     User               @relation("ClientConsultations", fields: [clientId], references: [id], onDelete: Cascade)
+  designerId String
+  designer   Designer           @relation("DesignerConsultations", fields: [designerId], references: [id])
+  mode       ConsultationMode
+  status     ConsultationStatus @default(PENDING)
+  scheduledAt DateTime
+  amount     Int                @default(0)
+  meetingUrl String?
+  createdAt  DateTime           @default(now())
+}
+
+model Product {
+  id        String   @id @default(cuid())
+  name      String
+  brand     String
+  category  String
+  price     Int
+  rating    Float    @default(0)
+  reviews   Int      @default(0)
+  tag       String?
+  createdAt DateTime @default(now())
+  orderItems OrderItem[]
+}
+
+model Order {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  total     Int
+  status    String      @default("pending")
+  createdAt DateTime    @default(now())
+  items     OrderItem[]
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int     @default(1)
+  price     Int
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  rating    Int
+  body      String
+  createdAt DateTime @default(now())
+}
