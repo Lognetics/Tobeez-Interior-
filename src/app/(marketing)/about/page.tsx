@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { Award, Heart, Leaf, Target, Users, Zap } from "lucide-react";
+import { ABOUT_COLLAGE } from "@/lib/gallery";
 import { PageHero } from "@/components/layout/page-hero";
 import { Container, Section, SectionHeading } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";
@@ -52,8 +54,13 @@ export default function AboutPage() {
             </p>
           </div>
           <div id="portfolio" className="grid grid-cols-2 gap-4">
-            {["from-amber-200 to-orange-300", "from-stone-200 to-stone-400", "from-emerald-200 to-teal-300", "from-rose-200 to-amber-200"].map((g, i) => (
-              <div key={i} className={`aspect-square rounded-2xl bg-gradient-to-br ${g} shadow-soft ${i % 2 ? "translate-y-6" : ""}`} />
+            {ABOUT_COLLAGE.map((src, i) => (
+              <div
+                key={src}
+                className={`relative aspect-square overflow-hidden rounded-2xl border border-border shadow-soft ${i % 2 ? "translate-y-6" : ""}`}
+              >
+                <Image src={src} alt="TOBEEZ interior project" fill sizes="(max-width: 1024px) 45vw, 25vw" className="object-cover transition-transform duration-500 hover:scale-110" />
+              </div>
             ))}
           </div>
         </Container>

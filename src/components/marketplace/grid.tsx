@@ -1,12 +1,14 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Heart, Search, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PRODUCTS, PRODUCT_CATEGORIES, type Product } from "@/lib/data/products";
+import { PRODUCT_IMAGES } from "@/lib/gallery";
 import { cn, formatCurrency } from "@/lib/utils";
 
 export function MarketplaceGrid() {
@@ -75,7 +77,16 @@ function ProductCard({ product, index, wished, onWish }: { product: Product; ind
       transition={{ delay: (index % 8) * 0.04 }}
       className="group overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all hover:-translate-y-1 hover:shadow-glow"
     >
-      <div className={cn("relative aspect-[4/3] bg-gradient-to-br", product.gradient)}>
+      <div className={cn("relative aspect-[4/3] overflow-hidden bg-gradient-to-br", product.gradient)}>
+        {PRODUCT_IMAGES[product.id] && (
+          <Image
+            src={PRODUCT_IMAGES[product.id]}
+            alt={product.name}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 33vw, 25vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-110"
+          />
+        )}
         {product.tag && (
           <Badge variant={product.tag === "Luxury" ? "default" : "secondary"} className="absolute left-3 top-3">
             {product.tag}

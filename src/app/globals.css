@@ -100,6 +100,30 @@
   --radius-2xl: calc(var(--radius) + 1rem);
 }
 
+/*
+  Mobile typography: scale every font size down by 20% on phones.
+  Tailwind v4 emits font sizes as `--text-*` custom properties that the
+  text-* utilities read via var(), so overriding them here shrinks only
+  typography — spacing, layout and icons are untouched.
+*/
+@media (max-width: 767px) {
+  :root {
+    --text-xs: 0.6rem;
+    --text-sm: 0.7rem;
+    --text-base: 0.8rem;
+    --text-lg: 0.9rem;
+    --text-xl: 1rem;
+    --text-2xl: 1.2rem;
+    --text-3xl: 1.5rem;
+    --text-4xl: 1.8rem;
+    --text-5xl: 2.4rem;
+    --text-6xl: 3rem;
+    --text-7xl: 3.6rem;
+    --text-8xl: 4.8rem;
+    --text-9xl: 6.4rem;
+  }
+}
+
 @layer base {
   * {
     border-color: var(--border);
