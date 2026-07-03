@@ -25,7 +25,7 @@ const STEP_META = [
   { title: "Design Style", subtitle: "Choose the aesthetic direction." },
   { title: "Material Preferences", subtitle: "Select the materials you love." },
   { title: "Furniture Quality", subtitle: "How premium should it feel?" },
-  { title: "Budget & Timeline", subtitle: "Optional — helps us tailor the plan." },
+  { title: "Budget & Timeline", subtitle: "Optional, helps us tailor the plan." },
   { title: "Special Requirements", subtitle: "Add any smart or luxury features." },
 ];
 
@@ -152,7 +152,7 @@ function SummaryRow({ label, value, onClick }: { label: string; value?: string; 
             {value}
           </button>
         ) : (
-          <span className="text-muted-foreground/50">—</span>
+          <span className="text-muted-foreground/50">-</span>
         )}
       </dd>
     </div>

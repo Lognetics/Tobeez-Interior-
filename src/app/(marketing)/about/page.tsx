@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { Award, Heart, Leaf, Target, Users, Zap } from "lucide-react";
-import { ABOUT_COLLAGE } from "@/lib/gallery";
+import { ABOUT_COLLAGE, FOUNDER_IMAGE } from "@/lib/gallery";
 import { PageHero } from "@/components/layout/page-hero";
 import { Container, Section, SectionHeading } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,15 +14,15 @@ export const metadata: Metadata = {
 
 const values = [
   { Icon: Target, title: "Precision", body: "Data-driven estimates you can plan and budget around with confidence." },
-  { Icon: Heart, title: "Craft", body: "We treat every space — big or small — with designer-grade care." },
+  { Icon: Heart, title: "Craft", body: "We treat every space, big or small, with designer-grade care." },
   { Icon: Zap, title: "Speed", body: "What took weeks of quotes now takes minutes with AI." },
   { Icon: Leaf, title: "Sustainability", body: "We surface durable, efficient choices and lifecycle costs." },
   { Icon: Users, title: "Partnership", body: "Vetted designers and suppliers working as one team for you." },
   { Icon: Award, title: "Excellence", body: "An award-worthy standard across every project we touch." },
 ];
 
-const team = [
-  { name: "Tobi Ezeh", role: "Founder & CEO", initials: "TE" },
+const team: { name: string; role: string; initials: string; image?: string }[] = [
+  { name: "Founder & CEO", role: "TOBEEZ Interiors", initials: "TI", image: FOUNDER_IMAGE },
   { name: "Ada Okonkwo", role: "Head of Design", initials: "AO" },
   { name: "Marcus Bello", role: "Head of Partnerships", initials: "MB" },
   { name: "Zara Khan", role: "Lead AI Engineer", initials: "ZK" },
@@ -43,7 +43,7 @@ export default function AboutPage() {
             <SectionHeading align="left" eyebrow="Our story" title="From frustrating quotes to instant clarity" />
             <p className="text-muted-foreground">
               We started TOBEEZ after watching clients wait weeks for furnishing quotes that were
-              inconsistent, opaque and hard to compare. We believed technology could do better —
+              inconsistent, opaque and hard to compare. We believed technology could do better,
               giving anyone an accurate, itemised estimate in minutes, then connecting them with the
               right experts and products to bring it to life.
             </p>
@@ -94,9 +94,15 @@ export default function AboutPage() {
             {team.map((m) => (
               <Card key={m.name}>
                 <CardContent className="flex flex-col items-center p-6 text-center">
-                  <span className="grid size-20 place-items-center rounded-2xl bg-gradient-to-br from-primary/20 to-accent font-display text-xl font-bold text-primary">
-                    {m.initials}
-                  </span>
+                  {m.image ? (
+                    <span className="relative size-20 overflow-hidden rounded-2xl">
+                      <Image src={m.image} alt={m.name} fill sizes="80px" className="object-cover" />
+                    </span>
+                  ) : (
+                    <span className="grid size-20 place-items-center rounded-2xl bg-gradient-to-br from-primary/20 to-accent font-display text-xl font-bold text-primary">
+                      {m.initials}
+                    </span>
+                  )}
                   <h3 className="mt-4 font-semibold">{m.name}</h3>
                   <p className="text-sm text-muted-foreground">{m.role}</p>
                 </CardContent>

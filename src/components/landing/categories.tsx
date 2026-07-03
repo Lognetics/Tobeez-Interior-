@@ -12,7 +12,7 @@ export function Categories() {
         <SectionHeading
           eyebrow="Any property, any scale"
           title="We furnish every kind of space"
-          description="From a studio apartment to a 200-room resort — the AI adapts pricing, materials and layouts to your property type and region."
+          description="From a studio apartment to a 200-room resort, the AI adapts pricing, materials and layouts to your property type and region."
         />
         <div className="mt-14 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {PROPERTY_CATEGORIES.map((c, i) => {

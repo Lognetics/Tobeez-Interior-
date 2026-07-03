@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 
 /**
- * Stubbed auth form. Wire `onSubmit` to NextAuth / Clerk / your API later —
+ * Stubbed auth form. Wire `onSubmit` to NextAuth / Clerk / your API later,
  * the UI does not need to change. Social buttons are placeholders.
  */
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
@@ -19,7 +19,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    // Simulated auth — replace with a real provider call.
+    // Simulated auth, replace with a real provider call.
     await new Promise((r) => setTimeout(r, 900));
     setLoading(false);
     router.push("/dashboard");

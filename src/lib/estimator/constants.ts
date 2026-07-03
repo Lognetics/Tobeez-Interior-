@@ -89,7 +89,7 @@ export const SPECIAL_FEATURES = [
   { id: "lighting", label: "Luxury Lighting", cost: 2800000 },
 ] as const;
 
-/** Regional cost-of-living multipliers (stub — replace with live price index). */
+/** Regional cost-of-living multipliers (stub, replace with live price index). */
 export const REGIONS = [
   { id: "lagos", label: "Lagos, Nigeria", multiplier: 1.2, currency: "NGN" },
   { id: "abuja", label: "Abuja, Nigeria", multiplier: 1.15, currency: "NGN" },

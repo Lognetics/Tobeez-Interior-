@@ -173,8 +173,8 @@ export function ConsultationBooking() {
             </div>
             <dl className="space-y-2 text-sm">
               <Row label="Session" value={CONSULTATION_MODES.find((m) => m.id === mode)?.label} />
-              <Row label="Date" value={day || "—"} />
-              <Row label="Time" value={time || "—"} />
+              <Row label="Date" value={day || "-"} />
+              <Row label="Time" value={time || "-"} />
             </dl>
             <div className="flex flex-wrap gap-1.5">
               {selectedDesigner.specialties.map((s) => <Badge key={s} variant="muted">{s}</Badge>)}

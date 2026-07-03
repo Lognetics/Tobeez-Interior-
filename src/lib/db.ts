@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 
-/** Prisma singleton — prevents exhausting connections during dev HMR. */
+/** Prisma singleton, prevents exhausting connections during dev HMR. */
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 export const db =

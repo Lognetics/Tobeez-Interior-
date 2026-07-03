@@ -1,13 +1,7 @@
 /**
- * Central image manifest.
- *
- * ⭐️ TO USE YOUR OWN PHOTOS (e.g. from @tobeezinteriors on Instagram):
- *    1. Download the photos you want from Instagram.
- *    2. Drop them into `public/gallery/` (keep the same file names to
- *       auto-replace, or add new names and update the arrays below).
- *    3. Put your logo at `public/brand/logo.png` (or .svg) — the Logo
- *       component picks it up automatically.
- * Nothing else needs to change. All imagery on the site flows from here.
+ * Central image manifest, all real TOBEEZ INTERIORS project photography.
+ * Photos live in `public/gallery/`. To add or replace, drop files there and
+ * update the arrays below. The brand logo lives in `public/brand/`.
  */
 
 export type GalleryItem = {
@@ -17,46 +11,97 @@ export type GalleryItem = {
   span?: "tall" | "wide" | "normal";
 };
 
-/** Big hero image on the landing page. */
-export const HERO_IMAGE = "/gallery/hero-1.jpg";
+/** Founder / CEO portrait. */
+export const FOUNDER_IMAGE = "/gallery/founder.jpg";
 
-/** Secondary hero accents (small framed shots that float in the hero). */
-export const HERO_ACCENTS = ["/gallery/living-2.jpg", "/gallery/kitchen-2.jpg"];
+/** Landing-page hero slider: full-bleed image + headline per slide. */
+export type HeroSlide = {
+  src: string;
+  eyebrow: string;
+  title: string;
+  highlight: string;
+  subtitle: string;
+};
 
-/** Portfolio / project showcase — masonry grid with a lightbox. */
+export const HERO_SLIDES: HeroSlide[] = [
+  {
+    src: "/gallery/hero-image.jpg",
+    eyebrow: "Luxury Residential",
+    title: "Furnish any space with",
+    highlight: "intelligent precision",
+    subtitle:
+      "Estimate the true cost of furnishing your home, get a designer-grade plan, and bring it to life, all in one platform.",
+  },
+  {
+    src: "/gallery/img-8149.jpg",
+    eyebrow: "Kitchens",
+    title: "Kitchens crafted",
+    highlight: "to perfection",
+    subtitle:
+      "From marble islands to smart appliances, plan a kitchen that blends beauty, function and budget.",
+  },
+  {
+    src: "/gallery/img-8156.jpg",
+    eyebrow: "Dining",
+    title: "Dining in",
+    highlight: "timeless style",
+    subtitle:
+      "Curated dining spaces designed around how you gather, entertain and live.",
+  },
+  {
+    src: "/gallery/img-8148.jpg",
+    eyebrow: "Commercial",
+    title: "Workspaces that",
+    highlight: "elevate every day",
+    subtitle:
+      "Offices, lounges and hospitality interiors engineered for people and performance.",
+  },
+  {
+    src: "/gallery/img-8146.jpg",
+    eyebrow: "Bedrooms",
+    title: "Retreats made for",
+    highlight: "deep rest",
+    subtitle:
+      "Serene, layered bedrooms with bespoke lighting, texture and warmth.",
+  },
+];
+
+/** Portfolio / project showcase, masonry grid with a lightbox. */
 export const PORTFOLIO: GalleryItem[] = [
-  { src: "/gallery/living-5.jpg", title: "Warm Modern Living Room", category: "Residential", span: "tall" },
-  { src: "/gallery/kitchen-1.jpg", title: "Bright Family Kitchen", category: "Kitchen" },
-  { src: "/gallery/bedroom-1.jpg", title: "Serene Master Suite", category: "Bedroom" },
-  { src: "/gallery/luxury-1.jpg", title: "Luxury Lounge", category: "Luxury", span: "wide" },
-  { src: "/gallery/dining-1.jpg", title: "Elegant Dining", category: "Dining" },
-  { src: "/gallery/living-3.jpg", title: "Minimalist Retreat", category: "Minimalist", span: "tall" },
-  { src: "/gallery/bath-1.jpg", title: "Spa Bathroom", category: "Bathroom" },
-  { src: "/gallery/office-1.jpg", title: "Executive Workspace", category: "Commercial" },
-  { src: "/gallery/living-1.jpg", title: "Contemporary Comfort", category: "Residential", span: "wide" },
-  { src: "/gallery/bedroom-2.jpg", title: "Boutique Bedroom", category: "Bedroom" },
+  { src: "/gallery/img-8146.jpg", title: "Luxury Master Bedroom", category: "Bedroom", span: "tall" },
+  { src: "/gallery/img-8149.jpg", title: "Marble Island Kitchen", category: "Kitchen" },
+  { src: "/gallery/img-8126.jpg", title: "Contemporary Living Room", category: "Living" },
+  { src: "/gallery/img-8156.jpg", title: "Emerald Dining", category: "Dining", span: "wide" },
+  { src: "/gallery/img-8134.jpg", title: "Dressing & Vanity Suite", category: "Bedroom" },
+  { src: "/gallery/img-8140.jpg", title: "Sculptural Bathroom", category: "Bathroom", span: "tall" },
+  { src: "/gallery/img-8116.jpg", title: "Warm Minimalist Lounge", category: "Living" },
+  { src: "/gallery/img-8148.jpg", title: "Executive Boardroom", category: "Commercial" },
+  { src: "/gallery/img-8143.jpg", title: "Media & Feature Wall", category: "Living", span: "wide" },
+  { src: "/gallery/img-8135.jpg", title: "Salon & Studio Fit-out", category: "Commercial" },
+  { src: "/gallery/img-8130.jpg", title: "Wood-Panelled Foyer", category: "Detail" },
+  { src: "/gallery/img-8125.jpg", title: "Breakfast Bar", category: "Kitchen" },
 ];
 
-/** Collage shown in the About page. */
+/** Collage shown on the About page. */
 export const ABOUT_COLLAGE = [
-  "/gallery/living-4.jpg",
-  "/gallery/interior-1.jpg",
-  "/gallery/house-1.jpg",
-  "/gallery/lounge-1.jpg",
+  "/gallery/img-8115.jpg",
+  "/gallery/img-8146.jpg",
+  "/gallery/img-8156.jpg",
+  "/gallery/img-8140.jpg",
 ];
 
-/** Product id → image. Falls back to a gradient if missing. */
+/** Product id -> image (marketplace). */
 export const PRODUCT_IMAGES: Record<string, string> = {
-  p1: "/gallery/sofa-1.jpg",
-  p2: "/gallery/lounge-1.jpg",
-  p3: "/gallery/dining-1.jpg",
-  p4: "/gallery/kitchen-2.jpg",
-  p5: "/gallery/living-6.jpg",
-  p6: "/gallery/bath-1.jpg",
-  p7: "/gallery/living-7.jpg",
-  p8: "/gallery/interior-1.jpg",
-  p9: "/gallery/living-4.jpg",
-  p10: "/gallery/office-1.jpg",
-  p11: "/gallery/house-1.jpg",
-  p12: "/gallery/living-1.jpg",
+  p1: "/gallery/img-8115.jpg",
+  p2: "/gallery/img-8143.jpg",
+  p3: "/gallery/img-8162.jpg",
+  p4: "/gallery/img-8125.jpg",
+  p5: "/gallery/img-8122.jpg",
+  p6: "/gallery/img-8141.jpg",
+  p7: "/gallery/img-8126.jpg",
+  p8: "/gallery/img-8131.jpg",
+  p9: "/gallery/img-8129.jpg",
+  p10: "/gallery/img-8148.jpg",
+  p11: "/gallery/img-8151.jpg",
+  p12: "/gallery/img-8110.jpg",
 };

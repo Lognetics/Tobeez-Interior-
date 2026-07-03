@@ -18,11 +18,11 @@ const display = Sora({
 
 export const metadata: Metadata = {
   title: {
-    default: "TOBEEZ INTERIOR — Intelligent Interior Planning Powered by AI",
+    default: "TOBEEZ INTERIOR, Intelligent Interior Planning Powered by AI",
     template: "%s · TOBEEZ INTERIOR",
   },
   description:
-    "Estimate the cost of furnishing any property with AI, book expert consultations, source products, and manage projects — all in one intelligent platform.",
+    "Estimate the cost of furnishing any property with AI, book expert consultations, source products, and manage projects, all in one intelligent platform.",
   keywords: [
     "interior design",
     "AI cost estimator",

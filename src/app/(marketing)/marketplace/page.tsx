@@ -14,7 +14,7 @@ export default function MarketplacePage() {
       <PageHero
         eyebrow="Marketplace"
         title="Curated products for every space"
-        description="Furniture, lighting, kitchen, décor and more — from vetted brands, with wishlists, comparison and delivery."
+        description="Furniture, lighting, kitchen, décor and more, from vetted brands, with wishlists, comparison and delivery."
       />
       <Container className="py-14">
         <MarketplaceGrid />

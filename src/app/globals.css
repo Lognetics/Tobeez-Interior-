@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
-  TOBEEZ INTERIOR — Design System
+  TOBEEZ INTERIOR, Design System
   Tailwind v4 CSS-first configuration.
   Brand: warm architectural neutrals + a signature terracotta/amber accent
   evoking premium interior spaces. Full dark/light support via .dark class.
@@ -24,11 +24,11 @@
   --input: oklch(0.9 0.006 90);
   --ring: oklch(0.68 0.13 55);
 
-  /* Brand accent — warm terracotta/amber */
+  /* Brand accent, warm terracotta/amber */
   --primary: oklch(0.66 0.15 52);
   --primary-foreground: oklch(0.99 0.01 90);
 
-  /* Secondary — deep clay */
+  /* Secondary, deep clay */
   --secondary: oklch(0.94 0.02 70);
   --secondary-foreground: oklch(0.3 0.03 60);
 
@@ -104,7 +104,7 @@
   Mobile typography: scale every font size down by 20% on phones.
   Tailwind v4 emits font sizes as `--text-*` custom properties that the
   text-* utilities read via var(), so overriding them here shrinks only
-  typography — spacing, layout and icons are untouched.
+  typography, spacing, layout and icons are untouched.
 */
 @media (max-width: 767px) {
   :root {

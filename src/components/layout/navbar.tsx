@@ -35,8 +35,8 @@ export function Navbar() {
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
         <nav
           className={cn(
-            "flex items-center justify-between rounded-2xl border px-4 py-2.5 transition-all duration-300",
-            scrolled ? "glass border-border shadow-soft" : "border-transparent",
+            "flex items-center justify-between rounded-2xl border px-4 py-2.5 transition-all duration-300 glass",
+            scrolled ? "border-border shadow-soft" : "border-border/40",
           )}
         >
           <Logo />

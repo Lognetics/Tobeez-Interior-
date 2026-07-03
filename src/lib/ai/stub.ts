@@ -1,7 +1,7 @@
 /**
  * Stubbed AI engine. This is a deterministic, offline stand-in for a real
  * LLM/vision backend (OpenAI, vector search, etc.). Swap the implementation
- * here for a real API call — the calling components never need to change.
+ * here for a real API call, the calling components never need to change.
  */
 
 export type ChatMessage = { role: "user" | "assistant"; content: string };
@@ -10,7 +10,7 @@ const CANNED: { match: RegExp; reply: string }[] = [
   {
     match: /budget|cost|price|estimate|expensive/i,
     reply:
-      "Great question! Furnishing cost depends on property type, floor area, design style and material quality. The fastest way to get an accurate figure is our AI Cost Estimator — it itemises furniture, finishes, labour and contingency. Want me to point you there?",
+      "Great question! Furnishing cost depends on property type, floor area, design style and material quality. The fastest way to get an accurate figure is our AI Cost Estimator, it itemises furniture, finishes, labour and contingency. Want me to point you there?",
   },
   {
     match: /style|modern|minimal|luxury|scandinav|design/i,
