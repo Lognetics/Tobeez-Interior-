@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useEstimator } from "@/lib/estimator/store";
+import { EstimatorUnlock } from "./unlock";
 import { estimate } from "@/lib/estimator/engine";
 import { PROPERTY_CATEGORIES, DESIGN_STYLES } from "@/lib/estimator/constants";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -29,6 +30,7 @@ const CAT_LABELS: Record<string, string> = {
 export function EstimatorResults() {
   const router = useRouter();
   const { data } = useEstimator();
+  const unlocked = useEstimator((s) => s.unlocked);
   const [hydrated, setHydrated] = React.useState(false);
   React.useEffect(() => setHydrated(true), []);
 
@@ -64,7 +66,7 @@ export function EstimatorResults() {
   const pieData = result.breakdownByCategory.map((b) => ({ name: CAT_LABELS[b.category] ?? b.category, key: b.category, value: b.amount }));
   const barData = result.items.filter((i) => i.category === "furnishing" || i.category === "finishes").map((i) => ({ name: i.label, amount: i.amount }));
 
-  return (
+  const report = (
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Button variant="ghost" onClick={() => router.push("/estimator")}><ArrowLeft /> Edit answers</Button>
@@ -164,6 +166,8 @@ export function EstimatorResults() {
       </p>
     </div>
   );
+
+  return unlocked ? report : <EstimatorUnlock teaser={report} />;
 }
 
 function HeadStat({ label, value }: { label: string; value: string }) {

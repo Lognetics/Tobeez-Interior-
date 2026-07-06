@@ -5,9 +5,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as Icons from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bell, Menu, Search, X } from "lucide-react";
+import { Menu, Search, X } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { NotificationBell } from "@/components/dashboard/notification-bell";
 import { Button } from "@/components/ui/button";
 import type { DashNavItem } from "@/lib/dashboard-nav";
 import { cn } from "@/lib/utils";
@@ -94,10 +95,7 @@ export function DashboardShell({
           </div>
           <div className="ml-auto flex items-center gap-1.5">
             <ThemeToggle />
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell />
-              <span className="absolute right-2.5 top-2.5 size-2 rounded-full bg-primary" />
-            </Button>
+            <NotificationBell />
             <span className="ml-1 grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{user.initials}</span>
           </div>
         </header>

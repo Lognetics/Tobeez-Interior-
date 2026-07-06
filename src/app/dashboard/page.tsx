@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Plus } from "lucide-react";
 import { DashHeader, StatCard } from "@/components/dashboard/widgets";
+import { DashboardGreeting } from "@/components/dashboard/greeting";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,7 @@ export default function ClientOverview() {
   return (
     <>
       <DashHeader
-        title="Welcome back, Jane 👋"
+        title={<DashboardGreeting />}
         subtitle="Here's what's happening across your projects."
         action={<Button asChild><Link href="/estimator"><Plus /> New Estimate</Link></Button>}
       />
@@ -59,6 +60,7 @@ export default function ClientOverview() {
             <h2 className="mb-4 font-display font-semibold">Quick actions</h2>
             <div className="space-y-2">
               {[
+                { label: "Open AI Design Studio", href: "/studio", icon: "Sparkles" },
                 { label: "Start AI Estimate", href: "/estimator", icon: "Calculator" },
                 { label: "Book Consultation", href: "/consultation", icon: "CalendarClock" },
                 { label: "Browse Marketplace", href: "/marketplace", icon: "ShoppingBag" },

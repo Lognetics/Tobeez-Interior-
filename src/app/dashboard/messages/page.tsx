@@ -1,18 +1,15 @@
-import { DashHeader, EmptyState } from "@/components/dashboard/widgets";
-import { Button } from "@/components/ui/button";
+import { Messages } from "@/components/messages/messages";
 
 export const metadata = { title: "Messages" };
 
 export default function MessagesPage() {
   return (
     <>
-      <DashHeader title="Messages" subtitle="This section is scaffolded and ready for its features." />
-      <EmptyState
-        icon="MessageSquare"
-        title="Nothing here yet"
-        description="Messages content will appear here. This is a working shell wired into navigation, auth and the design system."
-        action={<Button variant="outline">Learn more</Button>}
-      />
+      <div className="mb-4">
+        <h1 className="font-display text-2xl font-bold tracking-tight">Messages</h1>
+        <p className="text-muted-foreground">Chat with your consultant and AI assistant in one place.</p>
+      </div>
+      <Messages />
     </>
   );
 }

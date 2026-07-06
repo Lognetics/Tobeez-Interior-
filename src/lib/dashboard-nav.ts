@@ -3,13 +3,14 @@ export type DashNavItem = { label: string; href: string; icon: string };
 
 export const clientNav: DashNavItem[] = [
   { label: "Overview", href: "/dashboard", icon: "LayoutDashboard" },
+  { label: "AI Design Studio", href: "/studio", icon: "Sparkles" },
   { label: "My Projects", href: "/dashboard/projects", icon: "FolderKanban" },
   { label: "Saved Estimates", href: "/dashboard/estimates", icon: "Calculator" },
   { label: "Consultations", href: "/dashboard/consultations", icon: "CalendarClock" },
+  { label: "Messages", href: "/dashboard/messages", icon: "MessageSquare" },
   { label: "Orders", href: "/dashboard/orders", icon: "ShoppingBag" },
   { label: "Invoices", href: "/dashboard/invoices", icon: "Receipt" },
   { label: "Wishlist", href: "/dashboard/wishlist", icon: "Heart" },
-  { label: "Messages", href: "/dashboard/messages", icon: "MessageSquare" },
   { label: "Documents", href: "/dashboard/documents", icon: "FileText" },
   { label: "Settings", href: "/dashboard/settings", icon: "Settings" },
 ];

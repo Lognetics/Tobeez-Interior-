@@ -7,11 +7,14 @@ import type { EstimatorInput } from "./engine";
 export type EstimatorState = {
   step: number;
   data: EstimatorInput;
+  /** Whether the full itemised estimate has been unlocked (paid). */
+  unlocked: boolean;
   setData: (patch: Partial<EstimatorInput>) => void;
   toggleInArray: (key: "rooms" | "materials" | "features", value: string) => void;
   next: () => void;
   prev: () => void;
   goTo: (step: number) => void;
+  unlock: () => void;
   reset: () => void;
 };
 
@@ -28,6 +31,7 @@ export const useEstimator = create<EstimatorState>()(
     (set) => ({
       step: 0,
       data: initialData,
+      unlocked: false,
       setData: (patch) => set((s) => ({ data: { ...s.data, ...patch } })),
       toggleInArray: (key, value) =>
         set((s) => {
@@ -38,7 +42,8 @@ export const useEstimator = create<EstimatorState>()(
       next: () => set((s) => ({ step: Math.min(s.step + 1, TOTAL_STEPS - 1) })),
       prev: () => set((s) => ({ step: Math.max(s.step - 1, 0) })),
       goTo: (step) => set({ step }),
-      reset: () => set({ step: 0, data: initialData }),
+      unlock: () => set({ unlocked: true }),
+      reset: () => set({ step: 0, data: initialData, unlocked: false }),
     }),
     { name: "tobeez-estimator" },
   ),
