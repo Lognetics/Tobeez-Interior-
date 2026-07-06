@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useEstimator } from "@/lib/estimator/store";
 import { useAppData } from "@/lib/store/app-data";
+import { estimate } from "@/lib/estimator/engine";
+import { PROPERTY_CATEGORIES, DESIGN_STYLES } from "@/lib/estimator/constants";
 import { formatCurrency } from "@/lib/utils";
 
 const OLD_PRICE = 53000;
@@ -24,15 +26,30 @@ const UNLOCKS = [
 
 export function EstimatorUnlock({ teaser }: { teaser: React.ReactNode }) {
   const unlock = useEstimator((s) => s.unlock);
-  const addNotification = useAppData((s) => s.addNotification);
+  const data = useEstimator((s) => s.data);
+  const { addNotification, addEstimate, addInvoice, addProject } = useAppData();
   const [paying, setPaying] = React.useState(false);
 
   async function pay() {
     setPaying(true);
     await new Promise((r) => setTimeout(r, 1100)); // stubbed payment
+
+    // Persist the estimate, an invoice, and a project so it shows up across the
+    // dashboard (Saved Estimates, Invoices, My Projects, Activity, Notifications).
+    const result = estimate(data);
+    const categoryLabel = PROPERTY_CATEGORIES.find((c) => c.id === data.category)?.label;
+    const styleLabel = DESIGN_STYLES.find((s) => s.id === data.style)?.label;
+
+    const est = addEstimate({
+      category: categoryLabel, style: styleLabel, area: data.floorAreaSqm,
+      currency: result.currency, recommended: result.recommended, min: result.min, max: result.max, input: data,
+    });
+    addInvoice({ kind: "estimate", description: `AI Estimate unlock · ${categoryLabel ?? "Project"}`, amount: TODAY_PRICE, ref: est.id });
+    addProject({ name: `${categoryLabel ?? "New"} furnishing`, category: data.category, budget: result.recommended, estimateId: est.id });
+
     addNotification({
-      title: "Estimate unlocked", kind: "payment", href: "/estimator/results",
-      body: "Your full itemised AI estimate is now available to view, download and share.",
+      title: "Estimate unlocked", kind: "payment", href: "/dashboard/estimates",
+      body: "Your full itemised AI estimate is ready, and saved to your projects.",
     });
     unlock();
   }

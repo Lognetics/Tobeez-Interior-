@@ -11,6 +11,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
 import { Button } from "@/components/ui/button";
 import type { DashNavItem } from "@/lib/dashboard-nav";
+import { useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 export function DashboardShell({
@@ -26,6 +27,15 @@ export function DashboardShell({
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const sessionUser = useSession((s) => s.user);
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+
+  // On the client dashboard, reflect the actually signed-in user.
+  const display =
+    mounted && role.toLowerCase() === "client" && sessionUser
+      ? { name: sessionUser.name, initials: sessionUser.initials }
+      : user;
 
   const NavLinks = (
     <nav className="space-y-1">
@@ -57,9 +67,9 @@ export function DashboardShell({
         <div className="flex-1 overflow-y-auto p-3">{NavLinks}</div>
         <div className="border-t border-border p-3">
           <div className="flex items-center gap-3 rounded-xl px-3 py-2">
-            <span className="grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{user.initials}</span>
+            <span className="grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{display.initials}</span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{user.name}</p>
+              <p className="truncate text-sm font-medium">{display.name}</p>
               <p className="text-xs capitalize text-muted-foreground">{role}</p>
             </div>
           </div>
@@ -96,7 +106,7 @@ export function DashboardShell({
           <div className="ml-auto flex items-center gap-1.5">
             <ThemeToggle />
             <NotificationBell />
-            <span className="ml-1 grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{user.initials}</span>
+            <span className="ml-1 grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{display.initials}</span>
           </div>
         </header>
         <main className="p-4 sm:p-6 lg:p-8">{children}</main>

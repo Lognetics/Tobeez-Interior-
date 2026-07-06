@@ -13,12 +13,26 @@ export type SessionUser = {
   email: string;
   role: "client" | "consultant" | "vendor" | "admin";
   initials: string;
+  phone?: string;
+  location?: string;
 };
+
+export type Preferences = {
+  currency: string;
+  emailNotifs: boolean;
+  pushNotifs: boolean;
+  marketing: boolean;
+};
+
+const defaultPreferences: Preferences = { currency: "NGN", emailNotifs: true, pushNotifs: true, marketing: false };
 
 type SessionState = {
   user: SessionUser | null;
+  preferences: Preferences;
   signIn: (u: Partial<SessionUser> & { name: string; email: string }) => void;
   signOut: () => void;
+  updateProfile: (patch: Partial<SessionUser>) => void;
+  updatePreferences: (patch: Partial<Preferences>) => void;
 };
 
 function initials(name: string) {
@@ -36,6 +50,7 @@ export const useSession = create<SessionState>()(
     (set) => ({
       // Default demo user so dashboards feel populated out of the box.
       user: { name: "Light Ade", email: "light@example.com", role: "client", initials: "LA" },
+      preferences: defaultPreferences,
       signIn: (u) =>
         set({
           user: {
@@ -45,6 +60,9 @@ export const useSession = create<SessionState>()(
           } as SessionUser,
         }),
       signOut: () => set({ user: null }),
+      updateProfile: (patch) =>
+        set((s) => (s.user ? { user: { ...s.user, ...patch, initials: initials(patch.name ?? s.user.name) } } : s)),
+      updatePreferences: (patch) => set((s) => ({ preferences: { ...s.preferences, ...patch } })),
     }),
     { name: "tobeez-session" },
   ),

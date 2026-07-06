@@ -18,6 +18,7 @@ export function Checkout() {
   const items = useCart((s) => s.items);
   const clearCart = useCart((s) => s.clearCart);
   const addOrder = useAppData((s) => s.addOrder);
+  const addInvoice = useAppData((s) => s.addInvoice);
   const addNotification = useAppData((s) => s.addNotification);
 
   const [mounted, setMounted] = React.useState(false);
@@ -41,6 +42,7 @@ export function Checkout() {
       items: lines.map((l) => ({ productId: l.product.id, name: l.product.name, price: l.product.price, qty: l.qty })),
       subtotal, shipping, tax, total, address: address || "Lekki Phase 1, Lagos",
     });
+    addInvoice({ kind: "order", description: `Marketplace order · ${lines.length} item(s)`, amount: total, ref: order.id });
     addNotification({
       title: "Order placed", kind: "payment", href: "/dashboard/orders",
       body: `Order #${order.id.slice(-6).toUpperCase()} for ${formatCurrency(total)} is confirmed and processing.`,

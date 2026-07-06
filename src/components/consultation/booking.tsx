@@ -35,6 +35,7 @@ export function ConsultationBooking() {
   const addBooking = useAppData((s) => s.addBooking);
   const addNotification = useAppData((s) => s.addNotification);
   const addConversation = useAppData((s) => s.addConversation);
+  const addInvoice = useAppData((s) => s.addInvoice);
 
   const consultant = DESIGNERS.find((d) => d.id === consultantId) ?? null;
   const { oldPrice, currentPrice, currency, discountLabel, offerLabel } = CONSULTATION_PRICING;
@@ -57,6 +58,7 @@ export function ConsultationBooking() {
       bookingId: booking.id, consultantId: consultant.id, consultantName: consultant.name,
       subject: type, unlockDateIso: dateIso,
     });
+    addInvoice({ kind: "consultation", description: `${type} · ${consultant.name}`, amount: currentPrice, ref: booking.id });
     addNotification({
       title: "Consultation confirmed", kind: "booking", href: "/dashboard/consultations",
       body: `Your ${type} with ${consultant.name} is booked for ${dateLabel} at ${time}.`,
