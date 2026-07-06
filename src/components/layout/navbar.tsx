@@ -8,6 +8,7 @@ import { Menu, X } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { CartButton } from "@/components/marketplace/cart-button";
 import { mainNav } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
@@ -71,6 +72,7 @@ export function Navbar() {
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
+            <CartButton />
             <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
               <Link href="/login">Sign in</Link>
             </Button>

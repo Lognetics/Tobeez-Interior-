@@ -23,7 +23,7 @@ const values = [
 
 const team: { name: string; role: string; initials: string; image?: string }[] = [
   { name: "Founder & CEO", role: "TOBEEZ Interiors", initials: "TI", image: FOUNDER_IMAGE },
-  { name: "Ada Okonkwo", role: "Head of Design", initials: "AO" },
+  { name: "Vee", role: "Head of Design", initials: "V" },
   { name: "Marcus Bello", role: "Head of Partnerships", initials: "MB" },
   { name: "Zara Khan", role: "Lead AI Engineer", initials: "ZK" },
 ];

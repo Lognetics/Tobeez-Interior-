@@ -10,7 +10,8 @@ export type StudioMessage = {
   role: "user" | "assistant";
   content: string;
   attachments?: StudioAttachment[]; // user uploads
-  generated?: string[]; // AI-generated image URLs
+  generated?: string[]; // AI-generated image URLs (prompts)
+  video?: string; // AI video prompt (renders a keyframe preview)
   pending?: boolean;
   time: number;
 };

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
+import { useSession } from "@/lib/session";
 
 /**
  * Stubbed auth form. Wire `onSubmit` to NextAuth / Clerk / your API later,
@@ -13,14 +14,21 @@ import { Input, Label } from "@/components/ui/input";
  */
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
+  const signIn = useSession((s) => s.signIn);
   const [loading, setLoading] = React.useState(false);
   const isLogin = mode === "login";
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    // Simulated auth, replace with a real provider call.
+    // Simulated auth — replaces with a real provider call. We do establish a
+    // real client session so greetings and dashboards personalise correctly.
+    const form = new FormData(e.currentTarget as HTMLFormElement);
+    const email = String(form.get("email") || "").trim();
+    const nameField = String(form.get("name") || "").trim();
+    const name = nameField || (email ? email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "there");
     await new Promise((r) => setTimeout(r, 900));
+    signIn({ name, email: email || "you@example.com" });
     setLoading(false);
     router.push("/dashboard");
   }
@@ -50,12 +58,12 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         {!isLogin && (
           <div className="space-y-2">
             <Label htmlFor="name">Full name</Label>
-            <Input id="name" placeholder="Jane Doe" required />
+            <Input id="name" name="name" placeholder="Jane Doe" required />
           </div>
         )}
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" placeholder="you@email.com" required />
+          <Input id="email" name="email" type="email" placeholder="you@email.com" required />
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between">

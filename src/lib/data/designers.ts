@@ -23,7 +23,7 @@ export type Designer = {
 
 export const DESIGNERS: Designer[] = [
   {
-    id: "d1", name: "Ada Okonkwo", title: "Principal Designer", initials: "AO",
+    id: "d1", name: "Vee", title: "Principal Designer", initials: "V",
     rating: 4.9, projects: 182, specialties: ["Luxury", "Residential"], rate: 100000,
     gradient: "from-amber-300 to-orange-400", photo: "/gallery/founder.jpg",
     bio: "Award-winning principal designer specialising in luxury residential interiors, with a signature warm-modern aesthetic.",

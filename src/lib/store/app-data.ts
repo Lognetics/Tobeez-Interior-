@@ -45,6 +45,20 @@ export type Conversation = {
   createdAt: number;
 };
 
+export type OrderItem = { productId: string; name: string; price: number; qty: number };
+export type OrderStatus = "processing" | "shipped" | "delivered" | "cancelled";
+export type Order = {
+  id: string;
+  items: OrderItem[];
+  subtotal: number;
+  shipping: number;
+  tax: number;
+  total: number;
+  status: OrderStatus;
+  address: string;
+  createdAt: number;
+};
+
 let counter = 1;
 const uid = (p: string) => `${p}_${Date.now().toString(36)}_${counter++}`;
 
@@ -52,8 +66,10 @@ type AppState = {
   bookings: Booking[];
   notifications: AppNotification[];
   conversations: Conversation[];
+  orders: Order[];
   savedDesigns: { id: string; prompt: string; src: string; createdAt: number }[];
 
+  addOrder: (o: Omit<Order, "id" | "createdAt" | "status">) => Order;
   addBooking: (b: Omit<Booking, "id" | "createdAt" | "status">) => Booking;
   addNotification: (n: Omit<AppNotification, "id" | "createdAt" | "read">) => void;
   markAllRead: () => void;
@@ -69,8 +85,14 @@ export const useAppData = create<AppState>()(
       bookings: [],
       notifications: [],
       conversations: [],
+      orders: [],
       savedDesigns: [],
 
+      addOrder: (o) => {
+        const order: Order = { ...o, id: uid("ord"), status: "processing", createdAt: Date.now() };
+        set((s) => ({ orders: [order, ...s.orders] }));
+        return order;
+      },
       addBooking: (b) => {
         const booking: Booking = { ...b, id: uid("bkg"), status: "confirmed", createdAt: Date.now() };
         set((s) => ({ bookings: [booking, ...s.bookings] }));

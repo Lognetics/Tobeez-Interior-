@@ -16,7 +16,7 @@ type Msg = { id: string; from: "me" | "ai" | "consultant"; text: string; time: s
 const DEMO_CONV: Conversation = {
   id: "demo",
   consultantId: "d1",
-  consultantName: "Ada Okonkwo",
+  consultantName: "Vee",
   subject: "Luxury Interior Consultation",
   unlockDateIso: "2999-01-01", // locked (future) so AI assists in the demo
   createdAt: 0,
