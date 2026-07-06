@@ -25,7 +25,41 @@ export type EstimatorInput = {
   budgetMax?: number;
   timeline?: string;
   features?: string[];
+  // --- Expanded questionnaire ---
+  ownership?: string;
+  purpose?: string;
+  occupancy?: string;
+  reuseExisting?: boolean;
+  ceilingHeight?: string;
+  priorityRooms?: string[];
+  smartRooms?: boolean;
+  storageNeeds?: boolean;
+  accessibility?: boolean;
+  colorPalette?: string;
+  durability?: string;
+  sustainability?: boolean;
+  importedPreferred?: boolean;
+  childFriendly?: boolean;
+  petFriendly?: boolean;
+  maintenance?: string;
+  luxuryLevel?: string;
+  financing?: string;
+  phased?: boolean;
 };
+
+/** Extra cost multiplier from the expanded questionnaire answers. */
+export function refinementMultiplier(input: EstimatorInput): number {
+  let m = 1;
+  if (input.reuseExisting) m *= 0.92;
+  if (input.importedPreferred) m *= 1.12;
+  if (input.sustainability) m *= 1.05;
+  if (input.durability === "Maximum durability") m *= 1.06;
+  if (input.ceilingHeight === "High (3m+)") m *= 1.04;
+  if (input.ceilingHeight === "Double volume") m *= 1.1;
+  if (input.luxuryLevel === "High-end") m *= 1.18;
+  if (input.luxuryLevel === "Ultra luxury") m *= 1.45;
+  return m;
+}
 
 export type LineItem = {
   key: string;
@@ -88,7 +122,7 @@ export function estimate(input: EstimatorInput): EstimateResult {
   const roomFactor = 1 + Math.min((input.rooms?.length ?? 4) - 4, 12) * 0.015;
 
   const furnishingBase =
-    BASE_PER_SQM * area * styleMult * qualityMult * stageMult * regionMult * roomFactor;
+    BASE_PER_SQM * area * styleMult * qualityMult * stageMult * regionMult * roomFactor * refinementMultiplier(input);
 
   const items: LineItem[] = LINE_WEIGHTS.map((w) => ({
     key: w.key,

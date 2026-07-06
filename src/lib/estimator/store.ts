@@ -10,7 +10,7 @@ export type EstimatorState = {
   /** Whether the full itemised estimate has been unlocked (paid). */
   unlocked: boolean;
   setData: (patch: Partial<EstimatorInput>) => void;
-  toggleInArray: (key: "rooms" | "materials" | "features", value: string) => void;
+  toggleInArray: (key: "rooms" | "materials" | "features" | "priorityRooms", value: string) => void;
   next: () => void;
   prev: () => void;
   goTo: (step: number) => void;
@@ -18,12 +18,13 @@ export type EstimatorState = {
   reset: () => void;
 };
 
-export const TOTAL_STEPS = 11;
+export const TOTAL_STEPS = 15;
 
 const initialData: EstimatorInput = {
   rooms: [],
   materials: [],
   features: [],
+  priorityRooms: [],
 };
 
 export const useEstimator = create<EstimatorState>()(

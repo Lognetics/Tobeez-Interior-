@@ -5,6 +5,9 @@ import { ArrowLeft } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { ProductDetail } from "@/components/marketplace/product-detail";
 import { PRODUCTS } from "@/lib/data/products";
+import { getProductById, getProducts } from "@/lib/data/catalog";
+
+export const revalidate = 60;
 
 export function generateStaticParams() {
   return PRODUCTS.map((p) => ({ id: p.id }));
@@ -12,17 +15,18 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const product = PRODUCTS.find((p) => p.id === id);
+  const product = await getProductById(id);
   return { title: product ? product.name : "Product" };
 }
 
 export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const product = PRODUCTS.find((p) => p.id === id);
+  const product = await getProductById(id);
   if (!product) notFound();
 
-  const related = PRODUCTS.filter((p) => p.id !== product.id && p.category === product.category).slice(0, 4);
-  const fallback = PRODUCTS.filter((p) => p.id !== product.id).slice(0, 4);
+  const { products } = await getProducts();
+  const related = products.filter((p) => p.id !== product.id && p.category === product.category).slice(0, 4);
+  const fallback = products.filter((p) => p.id !== product.id).slice(0, 4);
 
   return (
     <div className="pt-28 pb-16">

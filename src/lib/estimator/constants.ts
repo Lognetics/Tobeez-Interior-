@@ -99,6 +99,32 @@ export const REGIONS = [
   { id: "other", label: "Other Region", multiplier: 1.0, currency: "NGN" },
 ] as const;
 
+/* --- Expanded questionnaire (Phase 2) --- */
+
+export const OWNERSHIP = ["Owned", "Rented"] as const;
+
+export const PURPOSE = ["Personal home", "Long-term rental", "Airbnb / Shortlet", "Commercial use"] as const;
+
+export const OCCUPANCY = ["Moving in now", "1–3 months", "3–6 months", "6–12 months", "Flexible"] as const;
+
+export const CEILING_HEIGHTS = ["Standard (2.7m)", "High (3m+)", "Double volume"] as const;
+
+export const COLOR_PALETTES = [
+  { id: "warm-neutral", label: "Warm Neutrals", colors: ["#e4d3ba", "#c4703f", "#5a4632"] },
+  { id: "cool-grey", label: "Cool Greys", colors: ["#dfe3e6", "#5b6670", "#2f3336"] },
+  { id: "earthy", label: "Earthy & Organic", colors: ["#a7b3a0", "#8a6f4e", "#3d3a30"] },
+  { id: "monochrome", label: "Monochrome", colors: ["#ffffff", "#9a9a9a", "#1a1a1a"] },
+  { id: "jewel", label: "Bold Jewel Tones", colors: ["#1f5e57", "#7a3b5d", "#caa24a"] },
+] as const;
+
+export const DURABILITY = ["Standard use", "High-traffic", "Maximum durability"] as const;
+
+export const LUXURY_LEVELS = ["Comfort", "Premium", "High-end", "Ultra luxury"] as const;
+
+export const MAINTENANCE = ["Low maintenance", "Balanced", "Not a concern"] as const;
+
+export const FINANCING = ["Pay upfront", "Installments", "Financing needed", "Not sure yet"] as const;
+
 export type PropertyCategory = (typeof PROPERTY_CATEGORIES)[number]["id"];
 export type ProjectStage = (typeof PROJECT_STAGES)[number]["id"];
 export type DesignStyle = (typeof DESIGN_STYLES)[number]["id"];

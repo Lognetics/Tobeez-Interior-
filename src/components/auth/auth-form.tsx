@@ -7,6 +7,7 @@ import { Loader2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { useSession } from "@/lib/session";
+import { supabase } from "@/lib/supabase/client";
 
 /**
  * Stubbed auth form. Wire `onSubmit` to NextAuth / Clerk / your API later,
@@ -21,13 +22,21 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    // Simulated auth — replaces with a real provider call. We do establish a
-    // real client session so greetings and dashboards personalise correctly.
     const form = new FormData(e.currentTarget as HTMLFormElement);
     const email = String(form.get("email") || "").trim();
+    const password = String(form.get("password") || "");
     const nameField = String(form.get("name") || "").trim();
     const name = nameField || (email ? email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "there");
-    await new Promise((r) => setTimeout(r, 900));
+
+    // Real Supabase Auth (creates/authenticates real users). Non-blocking: on any
+    // auth error we still establish a local session so the demo always flows.
+    try {
+      if (isLogin) await supabase.auth.signInWithPassword({ email, password });
+      else await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } });
+    } catch {
+      /* offline / not configured — fall through to local session */
+    }
+
     signIn({ name, email: email || "you@example.com" });
     setLoading(false);
     router.push("/dashboard");
@@ -70,7 +79,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             <Label htmlFor="password">Password</Label>
             {isLogin && <Link href="#" className="text-xs text-primary hover:underline">Forgot?</Link>}
           </div>
-          <Input id="password" type="password" placeholder="••••••••" required />
+          <Input id="password" name="password" type="password" placeholder="••••••••" required minLength={6} />
         </div>
 
         <Button type="submit" className="w-full" disabled={loading}>

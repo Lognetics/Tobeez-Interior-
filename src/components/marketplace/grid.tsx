@@ -13,7 +13,7 @@ import { PRODUCT_IMAGES } from "@/lib/gallery";
 import { useCart } from "@/lib/store/cart-store";
 import { cn, formatCurrency } from "@/lib/utils";
 
-export function MarketplaceGrid() {
+export function MarketplaceGrid({ products = PRODUCTS }: { products?: Product[] }) {
   const [category, setCategory] = React.useState<string>("All");
   const [query, setQuery] = React.useState("");
   const [mounted, setMounted] = React.useState(false);
@@ -22,7 +22,7 @@ export function MarketplaceGrid() {
   const wishlist = useCart((s) => s.wishlist);
   const toggleWishlist = useCart((s) => s.toggleWishlist);
 
-  const filtered = PRODUCTS.filter(
+  const filtered = products.filter(
     (p) =>
       (category === "All" || p.category === category) &&
       (p.name.toLowerCase().includes(query.toLowerCase()) ||
