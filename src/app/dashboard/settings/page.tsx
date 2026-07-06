@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { useSession } from "@/lib/session";
 import { useAppData } from "@/lib/store/app-data";
+import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
@@ -100,7 +101,7 @@ export default function SettingsPage() {
               <Button variant="outline" onClick={() => { if (confirm("Clear all your local activity (projects, estimates, orders, messages)?")) clearAll(); }}>
                 <Trash2 className="size-4" /> Clear data
               </Button>
-              <Button variant="destructive" onClick={() => { signOut(); router.push("/"); }}>
+              <Button variant="destructive" onClick={async () => { try { await supabase.auth.signOut(); } catch { /* ignore */ } signOut(); router.push("/"); }}>
                 <LogOut className="size-4" /> Sign out
               </Button>
             </div>
