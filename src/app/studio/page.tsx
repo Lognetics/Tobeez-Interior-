@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { DesignStudio } from "@/components/studio/studio";
+import { StudioChat } from "@/components/studio/studio-chat";
 
 export const metadata: Metadata = {
   title: "AI Design Studio",
-  description: "Describe a space and let AI design, render and cost it, then save results to your projects.",
+  description: "Chat with a real AI to design spaces, generate images and redesign uploaded rooms.",
 };
 
 export default function StudioPage() {
-  return <DesignStudio />;
+  return <StudioChat />;
 }

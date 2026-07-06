@@ -22,7 +22,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
           </div>
         </div>
       </header>
-      <main className="flex-1 px-5 py-8 sm:px-8 sm:py-12">{children}</main>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-3 py-4 sm:px-6">{children}</main>
     </div>
   );
 }

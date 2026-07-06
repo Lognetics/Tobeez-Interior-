@@ -8,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAppData, type Conversation } from "@/lib/store/app-data";
-import { stubChat } from "@/lib/ai/stub";
+import { sendChat, type ChatMessage } from "@/lib/ai/client";
 import { cn } from "@/lib/utils";
 
 type Msg = { id: string; from: "me" | "ai" | "consultant"; text: string; time: string; read?: boolean };
@@ -74,10 +74,15 @@ export function Messages() {
         { id: `c${Date.now()}`, from: "consultant", text: "Great, thanks for sharing! Let me pull up your estimate and moodboard so we can plan the next steps together.", time: nowLabel() },
       ]);
     } else {
-      const reply = await stubChat([{ role: "user", content: text }]);
+      const history: ChatMessage[] = [...messages, mine].slice(-8).map((x) => ({
+        role: x.from === "me" ? "user" : "assistant",
+        content: x.text,
+      }));
+      let reply = "";
+      try { reply = (await sendChat(history)).text; } catch { /* handled below */ }
       setThread(activeId, (m) => [
         ...m.map((x) => (x.from === "me" ? { ...x, read: true } : x)),
-        { id: `a${Date.now()}`, from: "ai", text: reply, time: nowLabel() },
+        { id: `a${Date.now()}`, from: "ai", text: reply || "I'm having trouble connecting right now, please try again.", time: nowLabel() },
       ]);
     }
     setTyping(false);

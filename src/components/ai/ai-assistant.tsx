@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Bot, Send, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { stubChat, type ChatMessage } from "@/lib/ai/stub";
+import { sendChat, type ChatMessage } from "@/lib/ai/client";
 
 const SUGGESTIONS = [
   "How much to furnish a 3-bedroom?",
@@ -37,8 +37,12 @@ export function AIAssistant() {
     setMessages(next);
     setInput("");
     setPending(true);
-    const reply = await stubChat(next);
-    setMessages([...next, { role: "assistant", content: reply }]);
+    try {
+      const { text } = await sendChat(next);
+      setMessages([...next, { role: "assistant", content: text || "Sorry, I couldn't respond just now. Please try again." }]);
+    } catch {
+      setMessages([...next, { role: "assistant", content: "I'm having trouble connecting right now. Please try again in a moment." }]);
+    }
     setPending(false);
   }
 
