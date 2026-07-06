@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { ArrowRight, Plus, Sparkles, Calculator, CalendarClock, ShoppingBag } from "lucide-react";
 import { DashHeader, StatCard } from "@/components/dashboard/widgets";
@@ -20,8 +21,15 @@ const QUICK = [
 ];
 
 export default function ClientOverview() {
-  const { projects, estimates, bookings, orders } = useAppData();
-  const activity = useAppData(selectActivity);
+  const projects = useAppData((s) => s.projects);
+  const estimates = useAppData((s) => s.estimates);
+  const bookings = useAppData((s) => s.bookings);
+  const orders = useAppData((s) => s.orders);
+  const savedDesigns = useAppData((s) => s.savedDesigns);
+  const activity = React.useMemo(
+    () => selectActivity({ projects, estimates, bookings, orders, savedDesigns }),
+    [projects, estimates, bookings, orders, savedDesigns],
+  );
   const totalBudget = projects.reduce((s, p) => s + p.budget, 0);
 
   return (

@@ -141,7 +141,8 @@ export const useAppData = create<AppState>()(
 
 /** Unified activity timeline across every module, newest first. */
 export type ActivityItem = { id: string; title: string; detail: string; kind: string; at: number; href?: string };
-export function selectActivity(s: AppState): ActivityItem[] {
+type ActivitySource = Pick<AppState, "estimates" | "bookings" | "orders" | "projects" | "savedDesigns">;
+export function selectActivity(s: ActivitySource): ActivityItem[] {
   const items: ActivityItem[] = [
     ...s.estimates.map((e) => ({ id: e.id, title: "AI estimate generated", detail: e.category ?? "Estimate", kind: "estimate", at: e.createdAt, href: "/dashboard/estimates" })),
     ...s.bookings.map((b) => ({ id: b.id, title: "Consultation booked", detail: `${b.type} · ${b.consultantName}`, kind: "booking", at: b.createdAt, href: "/dashboard/consultations" })),

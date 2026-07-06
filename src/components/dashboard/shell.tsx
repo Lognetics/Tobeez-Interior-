@@ -109,7 +109,17 @@ export function DashboardShell({
             <span className="ml-1 grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{display.initials}</span>
           </div>
         </header>
-        <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="p-4 sm:p-6 lg:p-8">
+          {mounted ? children : (
+            <div className="space-y-4">
+              <div className="h-8 w-56 animate-pulse rounded-lg bg-muted" />
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-28 animate-pulse rounded-2xl bg-muted" />)}
+              </div>
+              <div className="h-64 animate-pulse rounded-2xl bg-muted" />
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );
