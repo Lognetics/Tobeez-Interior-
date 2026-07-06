@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Markdown } from "@/components/ui/markdown";
 import { GeneratedImage } from "./generated-image";
 import { useChatStore, type StudioAttachment } from "@/lib/ai/chat-store";
-import { sendChat, wantsImage, fileToDataUrl, buildImageUrl, type ChatMessage } from "@/lib/ai/client";
+import { sendChat, wantsImage, fileToDataUrl, buildImageUrl, fallbackImage, type ChatMessage } from "@/lib/ai/client";
 import { cn } from "@/lib/utils";
 
 type Mode = "chat" | "image" | "video";
@@ -317,26 +317,32 @@ function ChatThread({ conversationId, mode, setMode }: { conversationId: string 
 }
 
 function VideoPreview({ prompt }: { prompt: string }) {
-  const [status, setStatus] = React.useState<"loading" | "ok" | "error">("loading");
+  const [status, setStatus] = React.useState<"loading" | "ok" | "fallback">("loading");
   const [seed, setSeed] = React.useState(() => Math.floor(Math.random() * 1_000_000));
-  const url = buildImageUrl(`cinematic wide shot, ${prompt}`, { width: 768, height: 432, seed });
+  const liveUrl = buildImageUrl(`cinematic wide shot, ${prompt}`, { width: 768, height: 432, seed });
+  const shownUrl = status === "fallback" ? fallbackImage(prompt, seed) : liveUrl;
 
   return (
     <div className="mt-3 sm:max-w-md">
       <div className="relative aspect-video overflow-hidden rounded-2xl border border-border bg-muted">
         {status === "loading" && (
-          <div className="absolute inset-0 grid place-items-center text-muted-foreground">
+          <div className="absolute inset-0 z-10 grid place-items-center text-muted-foreground">
             <div className="flex flex-col items-center gap-2"><Loader2 className="size-6 animate-spin" /><span className="text-xs">Rendering keyframe…</span></div>
           </div>
         )}
-        {status !== "error" && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img key={seed} src={url} alt={prompt} className={cn("size-full object-cover transition-opacity", status === "ok" ? "opacity-100" : "opacity-0")} onLoad={() => setStatus("ok")} onError={() => setStatus("error")} />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          key={`${status}-${seed}`}
+          src={shownUrl}
+          alt={prompt}
+          className={cn("size-full object-cover transition-opacity", status === "loading" ? "opacity-0" : "opacity-100")}
+          onLoad={() => setStatus((s) => (s === "loading" ? "ok" : s))}
+          onError={() => setStatus("fallback")}
+        />
+        {status === "fallback" && (
+          <span className="absolute left-2 top-2 z-10 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">From library</span>
         )}
-        {status === "error" && (
-          <button onClick={() => { setStatus("loading"); setSeed(Math.floor(Math.random() * 1_000_000)); }} className="absolute inset-0 grid place-items-center text-xs text-muted-foreground">Service busy, tap to retry</button>
-        )}
-        {status === "ok" && (
+        {status !== "loading" && (
           <div className="pointer-events-none absolute inset-0 grid place-items-center bg-black/25">
             <span className="grid size-14 place-items-center rounded-full glass text-white"><Play className="size-6 translate-x-0.5" /></span>
           </div>

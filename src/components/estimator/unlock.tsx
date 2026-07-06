@@ -41,7 +41,7 @@ export function EstimatorUnlock({ teaser }: { teaser: React.ReactNode }) {
     <div className="mx-auto max-w-5xl">
       {/* Blurred teaser behind the paywall */}
       <div className="relative overflow-hidden rounded-3xl border border-border">
-        <div className="pointer-events-none max-h-[320px] overflow-hidden opacity-60 blur-[6px]">{teaser}</div>
+        <div className="pointer-events-none max-h-[320px] select-none overflow-hidden opacity-40 blur-[14px]">{teaser}</div>
         <div className="absolute inset-0 bg-gradient-to-b from-background/40 to-background" />
       </div>
 

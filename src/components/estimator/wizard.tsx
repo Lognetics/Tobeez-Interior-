@@ -267,16 +267,19 @@ function StepContent({ step, data, setData, toggle }: StepProps) {
   }
 }
 
-/** AI recommendation layer: flags conflicts and suggests optimizations. */
+/**
+ * AI recommendation layer: flags conflicts and suggests optimizations.
+ * IMPORTANT: does NOT reveal any cost figures, the estimate stays hidden until
+ * after checkout on the results screen.
+ */
 function AIReview({ data }: { data: StepProps["data"] }) {
+  // Computed only for internal conflict logic (budget-vs-scope), never displayed.
   const result = React.useMemo(() => estimate(data), [data]);
 
   const flags: { kind: "warning" | "tip"; text: string }[] = [];
-  const styleLabel = DESIGN_STYLES.find((s) => s.id === data.style);
-  const qualityLabel = FURNITURE_QUALITY.find((q) => q.id === data.quality);
 
   if (data.budgetMax && data.budgetMax > 0 && data.budgetMax < result.min) {
-    flags.push({ kind: "warning", text: `Your maximum budget (${formatCurrency(data.budgetMax)}) is below the estimated minimum (${formatCurrency(result.min)}). Consider phasing the project or a more economical furniture tier.` });
+    flags.push({ kind: "warning", text: "Your maximum budget may be tight for a project of this scope. Consider phasing the work or a more economical furniture tier." });
   }
   if ((data.style === "ultra-luxury" || data.luxuryLevel === "Ultra luxury") && (data.quality === "economy" || data.quality === "standard")) {
     flags.push({ kind: "warning", text: "An ultra-luxury look with an economy/standard furniture tier may not fully achieve the intended finish. Consider Premium or above for key rooms." });
@@ -285,10 +288,10 @@ function AIReview({ data }: { data: StepProps["data"] }) {
     flags.push({ kind: "tip", text: "You chose to phase the project, select your priority rooms so we can sequence spend where it matters most." });
   }
   if (!data.reuseExisting) {
-    flags.push({ kind: "tip", text: "Reusing a few existing pieces could save roughly 8% without compromising the design." });
+    flags.push({ kind: "tip", text: "Reusing a few existing pieces could reduce your budget without compromising the design." });
   }
   if (data.importedPreferred) {
-    flags.push({ kind: "tip", text: "Imported materials add ~12%. Comparable local alternatives can protect the look while lowering cost." });
+    flags.push({ kind: "tip", text: "Imported materials cost more, comparable local alternatives can protect the look while lowering cost." });
   }
   if ((data.rooms?.length ?? 0) > 8 && data.quality === "ultra") {
     flags.push({ kind: "tip", text: "With many rooms at ultra-luxury tier, a mixed strategy (luxury in living/master, premium elsewhere) balances impact and budget." });
@@ -301,11 +304,10 @@ function AIReview({ data }: { data: StepProps["data"] }) {
     <div className="space-y-5">
       <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5">
         <p className="flex items-center gap-2 text-sm font-medium"><Sparkles className="size-4 text-primary" /> TOBEEZ AI reviewed your answers</p>
-        <div className="mt-3 flex items-end gap-2">
-          <span className="font-display text-3xl font-bold text-gradient">{formatCurrency(result.recommended, result.currency)}</span>
-          <span className="mb-1 text-sm text-muted-foreground">estimated · {styleLabel?.label ?? "custom"} · {qualityLabel?.label ?? "standard"}</span>
-        </div>
-        <p className="mt-1 text-xs text-muted-foreground">Range {formatCurrency(result.min, result.currency)} – {formatCurrency(result.max, result.currency)}. Full itemised breakdown unlocks on the next screen.</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Everything checks out. Here are a few notes to get the best value. Continue to generate your full
+          itemised estimate.
+        </p>
       </div>
 
       <div className="space-y-3">
