@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useEstimator } from "@/lib/estimator/store";
 import { useAppData } from "@/lib/store/app-data";
+import { useSession } from "@/lib/session";
+import { payWithPaystack, verifyPayment } from "@/lib/paystack";
 import { estimate } from "@/lib/estimator/engine";
 import { PROPERTY_CATEGORIES, DESIGN_STYLES } from "@/lib/estimator/constants";
 import { formatCurrency } from "@/lib/utils";
@@ -28,12 +30,22 @@ export function EstimatorUnlock({ teaser }: { teaser: React.ReactNode }) {
   const unlock = useEstimator((s) => s.unlock);
   const data = useEstimator((s) => s.data);
   const { addNotification, addEstimate, addInvoice, addProject } = useAppData();
+  const userEmail = useSession((s) => s.user?.email) ?? "";
   const [paying, setPaying] = React.useState(false);
 
   async function pay() {
     setPaying(true);
-    await new Promise((r) => setTimeout(r, 1100)); // stubbed payment
+    await payWithPaystack({
+      email: userEmail,
+      amount: TODAY_PRICE,
+      metadata: { purpose: "estimate_unlock", category: data.category },
+      onSuccess: async (ref) => { await verifyPayment(ref); complete(); },
+      onCancel: () => setPaying(false),
+      onError: () => setPaying(false),
+    });
+  }
 
+  function complete() {
     // Persist the estimate, an invoice, and a project so it shows up across the
     // dashboard (Saved Estimates, Invoices, My Projects, Activity, Notifications).
     const result = estimate(data);

@@ -9,6 +9,8 @@ import { Input, Label } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useCart, cartDetails, SHIPPING_FLAT, TAX_RATE } from "@/lib/store/cart-store";
 import { useAppData } from "@/lib/store/app-data";
+import { useSession } from "@/lib/session";
+import { payWithPaystack, verifyPayment } from "@/lib/paystack";
 import { PRODUCT_IMAGES } from "@/lib/gallery";
 import { cn, formatCurrency } from "@/lib/utils";
 
@@ -26,6 +28,8 @@ export function Checkout() {
   const [orderId, setOrderId] = React.useState<string | null>(null);
   const [payment, setPayment] = React.useState("Card");
   const [address, setAddress] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const sessionEmail = useSession((s) => s.user?.email) ?? "";
   React.useEffect(() => setMounted(true), []);
 
   const { lines, subtotal } = cartDetails(items);
@@ -37,7 +41,17 @@ export function Checkout() {
     e.preventDefault();
     if (lines.length === 0) return;
     setPlacing(true);
-    await new Promise((r) => setTimeout(r, 1100)); // stubbed payment
+    await payWithPaystack({
+      email: email || sessionEmail,
+      amount: total,
+      metadata: { purpose: "marketplace_order", items: lines.length },
+      onSuccess: async (ref) => { await verifyPayment(ref); completeOrder(); },
+      onCancel: () => setPlacing(false),
+      onError: () => setPlacing(false),
+    });
+  }
+
+  function completeOrder() {
     const order = addOrder({
       items: lines.map((l) => ({ productId: l.product.id, name: l.product.name, price: l.product.price, qty: l.qty })),
       subtotal, shipping, tax, total, address: address || "Lekki Phase 1, Lagos",
@@ -88,7 +102,7 @@ export function Checkout() {
           <h2 className="mb-4 font-display text-lg font-semibold">1 · Shipping details</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2"><Label htmlFor="name">Full name</Label><Input id="name" required placeholder="Jane Doe" /></div>
-            <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" type="email" required placeholder="you@email.com" /></div>
+            <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" type="email" required placeholder="you@email.com" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
             <div className="space-y-2"><Label htmlFor="phone">Phone</Label><Input id="phone" required placeholder="+234…" /></div>
             <div className="space-y-2"><Label htmlFor="city">City</Label><Input id="city" required placeholder="Lagos" /></div>
             <div className="space-y-2 sm:col-span-2"><Label htmlFor="addr">Delivery address</Label><Input id="addr" required value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Street, area, landmark" /></div>

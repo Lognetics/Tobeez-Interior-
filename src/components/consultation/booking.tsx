@@ -16,6 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { AvailabilityCalendar } from "./availability-calendar";
 import { DESIGNERS, CONSULTATION_MODES, CONSULTATION_TYPES, CONSULTATION_PRICING } from "@/lib/data/designers";
 import { useAppData } from "@/lib/store/app-data";
+import { useSession } from "@/lib/session";
+import { payWithPaystack, verifyPayment } from "@/lib/paystack";
 import { cn, formatCurrency } from "@/lib/utils";
 
 const TIMES = ["09:00", "10:30", "12:00", "14:00", "15:30", "17:00"];
@@ -31,11 +33,13 @@ export function ConsultationBooking() {
   const [dateLabel, setDateLabel] = React.useState("");
   const [time, setTime] = React.useState("");
   const [done, setDone] = React.useState(false);
+  const [paying, setPaying] = React.useState(false);
 
   const addBooking = useAppData((s) => s.addBooking);
   const addNotification = useAppData((s) => s.addNotification);
   const addConversation = useAppData((s) => s.addConversation);
   const addInvoice = useAppData((s) => s.addInvoice);
+  const userEmail = useSession((s) => s.user?.email) ?? "";
 
   const consultant = DESIGNERS.find((d) => d.id === consultantId) ?? null;
   const { oldPrice, currentPrice, currency, discountLabel, offerLabel } = CONSULTATION_PRICING;
@@ -68,6 +72,19 @@ export function ConsultationBooking() {
       body: `Chat with TOBEEZ AI now. ${consultant.name.split(" ")[0]} joins on ${dateLabel}.`,
     });
     setDone(true);
+  }
+
+  async function handlePay() {
+    if (!consultant || !dateIso) return;
+    setPaying(true);
+    await payWithPaystack({
+      email: userEmail,
+      amount: currentPrice,
+      metadata: { purpose: "consultation", type, consultant: consultant.name },
+      onSuccess: async (ref) => { await verifyPayment(ref); setPaying(false); confirmBooking(); },
+      onCancel: () => setPaying(false),
+      onError: () => setPaying(false),
+    });
   }
 
   if (done && consultant) {
@@ -247,7 +264,10 @@ export function ConsultationBooking() {
           {step < 3 ? (
             <Button onClick={() => setStep((s) => s + 1)} disabled={!canContinue}>Continue <ArrowRight /></Button>
           ) : (
-            <Button onClick={confirmBooking}>Pay {formatCurrency(currentPrice, currency)} & confirm</Button>
+            <Button onClick={handlePay} disabled={paying}>
+              {paying ? <Icons.Loader2 className="animate-spin" /> : null}
+              {paying ? "Processing…" : `Pay ${formatCurrency(currentPrice, currency)} & confirm`}
+            </Button>
           )}
         </div>
       </div>
