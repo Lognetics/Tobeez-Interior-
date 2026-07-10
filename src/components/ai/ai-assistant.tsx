@@ -1,11 +1,13 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bot, Send, Sparkles, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowUpRight, Bot, Loader2, LockKeyhole, Send, Sparkles, X } from "lucide-react";
+import { Markdown } from "@/components/ui/markdown";
 import { cn } from "@/lib/utils";
-import { sendChat, type ChatMessage } from "@/lib/ai/client";
+import { AIClientError, sendChat, type ChatMessage, type ChatSource } from "@/lib/ai/client";
+import { useSession } from "@/lib/session";
 
 const SUGGESTIONS = [
   "How much to furnish a 3-bedroom?",
@@ -13,152 +15,285 @@ const SUGGESTIONS = [
   "Compare marble vs porcelain",
 ];
 
+const WELCOME_MESSAGE: ChatMessage = {
+  role: "assistant",
+  content:
+    "Hi 👋 I'm TOBEEZ AI. Ask me about budgets, styles, materials, products, or book a consultation.",
+};
+
 export function AIAssistant() {
   const [open, setOpen] = React.useState(false);
   const [input, setInput] = React.useState("");
   const [pending, setPending] = React.useState(false);
-  const [messages, setMessages] = React.useState<ChatMessage[]>([
-    {
-      role: "assistant",
-      content:
-        "Hi 👋 I'm TOBEEZ AI. Ask me about budgets, styles, materials, or book a consultation.",
-    },
-  ]);
+  const [messages, setMessages] = React.useState<ChatMessage[]>([WELCOME_MESSAGE]);
+  const user = useSession((state) => state.user);
+  const authReady = useSession((state) => state.authReady);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const hasUserMessage = messages.some((message) => message.role === "user");
 
   React.useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    const frame = requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [messages, pending]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 220);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.clearTimeout(focusTimer);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
 
   async function send(text: string) {
     const content = text.trim();
-    if (!content || pending) return;
+    if (!content || pending || !user) return;
+
     const next: ChatMessage[] = [...messages, { role: "user", content }];
     setMessages(next);
     setInput("");
     setPending(true);
+
     try {
-      const { text } = await sendChat(next);
-      setMessages([...next, { role: "assistant", content: text || "Sorry, I couldn't respond just now. Please try again." }]);
-    } catch {
-      setMessages([...next, { role: "assistant", content: "I'm having trouble connecting right now. Please try again in a moment." }]);
+      const response = await sendChat(next);
+      setMessages([
+        ...next,
+        {
+          role: "assistant",
+          content: response.text || "Sorry, I couldn't respond just now. Please try again.",
+          sources: response.sources,
+        },
+      ]);
+    } catch (error) {
+      setMessages([
+        ...next,
+        {
+          role: "assistant",
+          content: error instanceof AIClientError && error.code === "AUTH_REQUIRED"
+            ? "Your session has expired. Please sign in again to continue."
+            : "I'm having trouble connecting right now. Please try again in a moment.",
+        },
+      ]);
+    } finally {
+      setPending(false);
     }
-    setPending(false);
   }
 
   return (
     <>
       <AnimatePresence>
         {open && (
-          <motion.div
+          <motion.section
+            id="tobeez-ai-dialog"
+            role="dialog"
+            aria-modal="false"
+            aria-labelledby="tobeez-ai-title"
             initial={{ opacity: 0, y: 24, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.96 }}
-            transition={{ type: "spring", stiffness: 320, damping: 30 }}
-            className="fixed bottom-24 right-4 z-50 flex h-[540px] max-h-[75vh] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-3xl border border-border glass shadow-glow sm:right-6"
+            transition={{ type: "spring", stiffness: 340, damping: 30 }}
+            className="fixed bottom-[88px] right-3 z-50 flex h-[540px] max-h-[calc(100dvh-7.5rem)] w-[calc(100vw-1.5rem)] max-w-[384px] origin-bottom-right flex-col overflow-hidden rounded-[26px] border border-[#3a2e27] bg-[#171413] text-[#f7f3ef] shadow-[0_24px_70px_-20px_rgba(126,64,23,0.72)] sm:right-6"
           >
-            <header className="flex items-center justify-between border-b border-border/60 px-4 py-3">
-              <div className="flex items-center gap-2.5">
-                <span className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground">
-                  <Sparkles className="size-4" />
+            <header className="flex h-[70px] shrink-0 items-center justify-between border-b border-[#292320] px-4">
+              <div className="flex items-center gap-3">
+                <span className="grid size-9 place-items-center rounded-full bg-[#ff923f] text-[#26160d]">
+                  <Sparkles className="size-[17px]" strokeWidth={2.2} />
                 </span>
                 <div className="leading-tight">
-                  <p className="text-sm font-semibold">TOBEEZ AI</p>
-                  <p className="text-[11px] text-muted-foreground">Interior assistant · online</p>
+                  <h2 id="tobeez-ai-title" className="text-[14px] font-semibold tracking-[-0.01em]">
+                    TOBEEZ AI
+                  </h2>
+                  <p className="mt-1 text-[11px] text-[#9e958f]">Interior assistant · online</p>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => setOpen(false)} aria-label="Close assistant">
-                <X />
-              </Button>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="Close TOBEEZ AI"
+                className="grid size-10 place-items-center rounded-full text-[#c8c0ba] transition-colors hover:bg-[#28221f] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff923f]"
+              >
+                <X className="size-[18px]" />
+              </button>
             </header>
 
-            <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-              {messages.map((m, i) => (
+            <div
+              ref={scrollRef}
+              className="flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4 [scrollbar-color:#43362f_transparent] [scrollbar-width:thin]"
+            >
+              {!authReady ? (
+                <div className="grid h-full place-items-center">
+                  <Loader2 className="size-6 animate-spin text-[#ff923f]" aria-label="Checking session" />
+                </div>
+              ) : !user ? (
+                <div className="flex h-full flex-col items-center justify-center px-5 text-center">
+                  <span className="grid size-12 place-items-center rounded-full bg-[#29241f] text-[#ff923f]">
+                    <LockKeyhole className="size-5" />
+                  </span>
+                  <h3 className="mt-4 text-[16px] font-semibold">Sign in to chat</h3>
+                  <p className="mt-2 text-[12px] leading-5 text-[#a69d96]">
+                    Your TOBEEZ workspace, saved projects, and generation history stay private to your account.
+                  </p>
+                  <Link href="/login?next=/" className="mt-5 rounded-full bg-[#ff923f] px-5 py-2.5 text-[12px] font-semibold text-[#24150d] transition-colors hover:bg-[#ffa45f]">
+                    Sign in to continue
+                  </Link>
+                </div>
+              ) : messages.map((message, index) => (
                 <div
-                  key={i}
+                  key={`${message.role}-${index}`}
                   className={cn(
-                    "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed",
-                    m.role === "user"
-                      ? "ml-auto bg-primary text-primary-foreground"
-                      : "bg-muted text-foreground",
+                    "w-fit max-w-[86%] rounded-[26px] px-3.5 py-3 text-[13px] leading-[1.6]",
+                    message.role === "user"
+                      ? "ml-auto rounded-br-lg bg-[#f58c3c] text-[#24150d]"
+                      : "rounded-tl-lg bg-[#29241f] text-[#f4efeb]",
                   )}
                 >
-                  {m.content}
+                  {message.role === "assistant" ? (
+                    <>
+                      <Markdown className="text-[13px] leading-[1.6] text-inherit">
+                        {message.content}
+                      </Markdown>
+                      {!!message.sources?.length && <SourceLinks sources={message.sources} />}
+                    </>
+                  ) : (
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                  )}
                 </div>
               ))}
-              {pending && (
-                <div className="flex w-16 items-center gap-1 rounded-2xl bg-muted px-3.5 py-3">
-                  <Dot /> <Dot delay={0.15} /> <Dot delay={0.3} />
+
+              {user && pending && (
+                <div
+                  aria-label="TOBEEZ AI is thinking"
+                  aria-live="polite"
+                  className="flex w-fit items-center gap-1.5 rounded-[22px] rounded-tl-lg bg-[#29241f] px-4 py-3.5"
+                >
+                  <Dot />
+                  <Dot delay={0.15} />
+                  <Dot delay={0.3} />
                 </div>
               )}
-              {messages.length <= 1 && (
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {SUGGESTIONS.map((s) => (
+
+              {user && !hasUserMessage && (
+                <div className="flex flex-col items-start gap-2 pt-1">
+                  {SUGGESTIONS.map((suggestion) => (
                     <button
-                      key={s}
-                      onClick={() => send(s)}
-                      className="rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted"
+                      type="button"
+                      key={suggestion}
+                      onClick={() => send(suggestion)}
+                      disabled={pending}
+                      className="rounded-full border border-[#3a302a] bg-transparent px-3 py-1.5 text-left text-[12px] text-[#a69d96] transition-colors hover:border-[#6e4933] hover:bg-[#241f1c] hover:text-[#eee7e1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff923f] disabled:opacity-50"
                     >
-                      {s}
+                      {suggestion}
                     </button>
                   ))}
                 </div>
               )}
             </div>
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
+            {user && <form
+              onSubmit={(event) => {
+                event.preventDefault();
                 send(input);
               }}
-              className="flex items-center gap-2 border-t border-border/60 p-3"
+              className="flex min-h-[68px] shrink-0 items-center gap-2 border-t border-[#292320] px-3 py-2.5"
             >
+              <label htmlFor="tobeez-ai-input" className="sr-only">
+                Ask TOBEEZ AI about interiors or the platform
+              </label>
               <input
+                ref={inputRef}
+                id="tobeez-ai-input"
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask anything about interiors…"
-                className="h-10 flex-1 rounded-full bg-muted px-4 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                onChange={(event) => setInput(event.target.value)}
+                maxLength={4_000}
+                autoComplete="off"
+                placeholder="Ask anything about interiors..."
+                className="h-10 min-w-0 flex-1 rounded-full bg-[#29241f] px-4 text-[13px] text-[#f7f3ef] outline-none placeholder:text-[#8f8781] focus-visible:ring-2 focus-visible:ring-[#ff923f]/80"
               />
-              <Button type="submit" size="icon" disabled={pending || !input.trim()} aria-label="Send">
-                <Send />
-              </Button>
-            </form>
-          </motion.div>
+              <button
+                type="submit"
+                disabled={pending || !input.trim()}
+                aria-label="Send message"
+                className="grid size-10 shrink-0 place-items-center rounded-full bg-[#9b562a] text-[#1f120b] transition-all hover:bg-[#f58c3c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffb174] disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                <Send className="size-[17px]" />
+              </button>
+            </form>}
+          </motion.section>
         )}
       </AnimatePresence>
 
       <motion.button
+        type="button"
         whileTap={{ scale: 0.92 }}
-        onClick={() => setOpen((v) => !v)}
-        aria-label="Open AI assistant"
-        className="fixed bottom-5 right-4 z-50 grid size-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-glow transition-transform hover:scale-105 sm:right-6"
+        onClick={() => setOpen((value) => !value)}
+        aria-label={open ? "Close TOBEEZ AI" : "Open TOBEEZ AI"}
+        aria-controls="tobeez-ai-dialog"
+        aria-expanded={open}
+        className="fixed bottom-4 right-3 z-50 grid size-14 place-items-center rounded-full bg-[#ff8f3d] text-[#21130c] shadow-[0_14px_36px_-10px_rgba(226,111,32,0.7)] transition-colors hover:bg-[#ffa057] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffb47d] focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:right-6"
       >
         <AnimatePresence mode="wait" initial={false}>
           {open ? (
-            <motion.span key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
+            <motion.span
+              key="close"
+              initial={{ rotate: -90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: 90, opacity: 0 }}
+            >
               <X className="size-6" />
             </motion.span>
           ) : (
-            <motion.span key="bot" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
+            <motion.span
+              key="bot"
+              initial={{ rotate: 90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: -90, opacity: 0 }}
+            >
               <Bot className="size-6" />
             </motion.span>
           )}
         </AnimatePresence>
-        {!open && (
-          <span className="absolute -right-0.5 -top-0.5 flex size-3.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
-            <span className="relative inline-flex size-3.5 rounded-full bg-success" />
-          </span>
-        )}
       </motion.button>
     </>
+  );
+}
+
+function SourceLinks({ sources }: { sources: ChatSource[] }) {
+  const uniqueSources = sources.filter(
+    (source, index) => sources.findIndex((candidate) => candidate.id === source.id) === index,
+  );
+
+  return (
+    <div className="mt-3 border-t border-[#403730] pt-2.5">
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9f938a]">
+        Platform sources
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {uniqueSources.slice(0, 3).map((source) => (
+          <Link
+            key={source.id}
+            href={source.href}
+            className="inline-flex items-center gap-1 rounded-full border border-[#4a3d34] px-2 py-1 text-[10px] leading-none text-[#d7c9be] transition-colors hover:border-[#b16c3c] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff923f]"
+          >
+            <span className="max-w-[170px] truncate">{source.title}</span>
+            <ArrowUpRight className="size-2.5" />
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }
 
 function Dot({ delay = 0 }: { delay?: number }) {
   return (
     <motion.span
-      className="size-2 rounded-full bg-muted-foreground"
+      className="size-1.5 rounded-full bg-[#a79d96]"
       animate={{ y: [0, -4, 0], opacity: [0.4, 1, 0.4] }}
       transition={{ duration: 0.9, repeat: Infinity, delay }}
     />

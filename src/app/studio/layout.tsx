@@ -12,7 +12,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
           <div className="flex items-center gap-3">
             <Logo />
             <span className="hidden items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary sm:inline-flex">
-              <Sparkles className="size-3" /> Studio Pro · ₦15,000/mo
+              <Sparkles className="size-3" /> Studio Pro · ₦43,000/mo
             </span>
           </div>
           <div className="flex items-center gap-2">
