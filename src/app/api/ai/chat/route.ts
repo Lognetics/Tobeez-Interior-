@@ -146,6 +146,7 @@ export async function POST(req: Request) {
       products: recommendedProducts,
     });
   } catch (err) {
+    console.error("AI chat provider failed, serving grounded fallback:", err);
     const fallback = buildGroundedFallback(
       retrieval.results,
       retrieval.explicitPlatformQuestion,
