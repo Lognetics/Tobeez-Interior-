@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { AuthForm } from "@/components/auth/auth-form";
+import { safeNextPath } from "@/lib/auth/redirect";
 
 export const metadata: Metadata = { title: "Sign in" };
 
-export default function LoginPage() {
-  return <AuthForm mode="login" />;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+  const { next } = await searchParams;
+  return <AuthForm mode="login" nextPath={safeNextPath(next)} />;
 }

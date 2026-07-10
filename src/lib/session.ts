@@ -2,11 +2,11 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { mirrorAuthCookie } from "@/lib/auth/cookie";
 
 /**
- * Lightweight client session. Stands in for a real auth provider
- * (NextAuth/Clerk) so personalized greetings, gating and dashboards work
- * end-to-end offline. Swap `signIn` to call a real backend later.
+ * Client mirror of the verified Supabase session. This state improves the UI,
+ * but protected API routes always verify the Supabase access token themselves.
  */
 export type SessionUser = {
   name: string;
@@ -28,9 +28,11 @@ const defaultPreferences: Preferences = { currency: "NGN", emailNotifs: true, pu
 
 type SessionState = {
   user: SessionUser | null;
+  authReady: boolean;
   preferences: Preferences;
   signIn: (u: Partial<SessionUser> & { name: string; email: string }) => void;
   signOut: () => void;
+  setAuthReady: (ready: boolean) => void;
   updateProfile: (patch: Partial<SessionUser>) => void;
   updatePreferences: (patch: Partial<Preferences>) => void;
 };
@@ -48,23 +50,34 @@ function initials(name: string) {
 export const useSession = create<SessionState>()(
   persist(
     (set) => ({
-      // Default demo user so dashboards feel populated out of the box.
-      user: { name: "Light Ade", email: "light@example.com", role: "client", initials: "LA" },
+      user: null,
+      authReady: false,
       preferences: defaultPreferences,
-      signIn: (u) =>
+      signIn: (u) => {
+        mirrorAuthCookie(true);
         set({
           user: {
             role: "client",
             ...u,
             initials: initials(u.name),
           } as SessionUser,
-        }),
-      signOut: () => set({ user: null }),
+        });
+      },
+      signOut: () => {
+        mirrorAuthCookie(false);
+        set({ user: null });
+      },
+      setAuthReady: (ready) => set({ authReady: ready }),
       updateProfile: (patch) =>
         set((s) => (s.user ? { user: { ...s.user, ...patch, initials: initials(patch.name ?? s.user.name) } } : s)),
       updatePreferences: (patch) => set((s) => ({ preferences: { ...s.preferences, ...patch } })),
     }),
-    { name: "tobeez-session" },
+    {
+      name: "tobeez-session",
+      version: 2,
+      migrate: (persisted) => ({ ...(persisted as SessionState), user: null, authReady: false }),
+      partialize: (state) => ({ preferences: state.preferences }) as SessionState,
+    },
   ),
 );
 
