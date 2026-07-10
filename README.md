@@ -6,9 +6,11 @@ An enterprise-grade platform to estimate the cost of furnishing any property, bo
 expert consultations, source products and manage projects — all in one elegant,
 premium web app.
 
-> **Status:** Milestone 1 — full-stack scaffold. Landing page, AI Cost Estimator,
-> marketplace, consultation booking, auth, and Client/Designer/Admin dashboards are
-> in place. AI, payments, email and real auth are **stubbed** and cleanly swappable.
+> **Status:** Milestone 2 — live integrations. Landing page, AI Cost Estimator,
+> marketplace, consultation booking, and Client/Designer/Admin dashboards are in
+> place. AI chat plus image/video generation (OpenAI + Replicate), Paystack payments
+> (test mode), and Supabase-backed auth/cloud sync are now **live**; email remains
+> stubbed and cleanly swappable.
 
 ---
 
@@ -36,7 +38,8 @@ npm run db:reset     # creates the SQLite DB and seeds demo data
 npm run dev          # http://localhost:3000
 ```
 
-No API keys are required — every third-party integration is stubbed.
+The app runs without API keys (integrations fall back to stubs/library content),
+but live AI, payments, and cloud sync need the keys listed in `.env.example`.
 
 ### Useful scripts
 
