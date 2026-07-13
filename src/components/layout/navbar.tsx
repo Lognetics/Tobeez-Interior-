@@ -10,12 +10,17 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { CartButton } from "@/components/marketplace/cart-button";
 import { mainNav } from "@/lib/site";
+import { useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = React.useState(false);
   const [open, setOpen] = React.useState(false);
+  const user = useSession((s) => s.user);
+  const authReady = useSession((s) => s.authReady);
+  // Starts false on server and first client paint, so hydration stays stable.
+  const signedIn = authReady && !!user;
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -74,7 +79,7 @@ export function Navbar() {
             <ThemeToggle />
             <CartButton />
             <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-              <Link href="/login">Sign in</Link>
+              <Link href={signedIn ? "/dashboard" : "/login"}>{signedIn ? "Dashboard" : "Sign in"}</Link>
             </Button>
             <Button asChild size="sm" className="hidden sm:inline-flex">
               <Link href="/estimator">Start AI Estimate</Link>
@@ -110,7 +115,7 @@ export function Navbar() {
               ))}
               <div className="mt-2 grid grid-cols-2 gap-2 p-2">
                 <Button asChild variant="outline" size="sm">
-                  <Link href="/login">Sign in</Link>
+                  <Link href={signedIn ? "/dashboard" : "/login"}>{signedIn ? "Dashboard" : "Sign in"}</Link>
                 </Button>
                 <Button asChild size="sm">
                   <Link href="/estimator">Estimate</Link>
