@@ -46,6 +46,11 @@ type Mode = "chat" | "image" | "video";
 /** Studio Pro subscription price (per 30 days) — matches the header badge. */
 const STUDIO_PRO_PRICE = 43000;
 
+/** On touch keyboards, Enter inserts a newline; on desktop, Enter sends and Shift+Enter breaks the line. */
+function isTouchDevice() {
+  return typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+}
+
 const MODES: { id: Mode; label: string; icon: React.ElementType; hint: string }[] = [
   { id: "chat", label: "Chat", icon: MessageSquare, hint: "Ask, plan and analyse" },
   { id: "image", label: "Image", icon: ImageIcon, hint: "Generate & redesign visuals" },
@@ -212,9 +217,9 @@ function StudioProGate({ mode }: { mode: Mode }) {
 
         <ul className="mx-auto mt-6 max-w-xs space-y-2.5 text-left">
           {[
-            `${STUDIO_PRO_LIMITS.image} photorealistic image renders per month`,
+            "Photorealistic interior renders in seconds",
             "Redesign your own room from a photo",
-            `${STUDIO_PRO_LIMITS.video} cinematic video walkthroughs per month`,
+            "Cinematic video walkthroughs with audio",
             "Save every design to your dashboard",
           ].map((benefit) => (
             <li key={benefit} className="flex items-start gap-2.5 text-sm">
@@ -378,8 +383,8 @@ function ChatThread({ conversationId, mode, setMode, proActive }: { conversation
           id: assistantId,
           kind: videoBlocked ? "video" : "image",
           error: videoBlocked
-            ? `You've used all ${STUDIO_PRO_LIMITS.video} video generations in this billing cycle. Your quota resets when the subscription renews.`
-            : `You've used all ${STUDIO_PRO_LIMITS.image} image renders in this billing cycle. Your quota resets when the subscription renews.`,
+            ? "You've reached this cycle's video generation limit. It resets when your subscription renews."
+            : "You've reached this cycle's image generation limit. It resets when your subscription renews.",
         });
       }
       if (shouldVideo) {
@@ -625,7 +630,7 @@ function ChatThread({ conversationId, mode, setMode, proActive }: { conversation
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !isTouchDevice()) { e.preventDefault(); send(); } }}
               onPaste={(e) => {
                 if (e.clipboardData.files.length > 0) {
                   e.preventDefault();
@@ -642,10 +647,8 @@ function ChatThread({ conversationId, mode, setMode, proActive }: { conversation
           </div>
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
             {mode === "video"
-              ? `Veo renders take one to three minutes — keep this page open. ${videosLeft} of ${STUDIO_PRO_LIMITS.video} videos left this cycle.`
-              : mode === "image"
-                ? `${imagesLeft} of ${STUDIO_PRO_LIMITS.image} image renders left this cycle.`
-                : "TOBEEZ AI grounds responses and visuals in your workspace and verified platform records."}
+              ? "Real video generation can take one to three minutes. Keep this page open while it renders."
+              : "TOBEEZ AI grounds responses and visuals in your workspace and verified platform records."}
           </p>
         </div>
       </div>

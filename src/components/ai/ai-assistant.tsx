@@ -14,6 +14,11 @@ const SUGGESTIONS = [
   "Compare marble vs porcelain",
 ];
 
+/** On touch keyboards, Enter inserts a newline; on desktop, Enter sends and Shift+Enter breaks the line. */
+function isTouchDevice() {
+  return typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+}
+
 const WELCOME_MESSAGE: ChatMessage = {
   role: "assistant",
   content:
@@ -26,7 +31,7 @@ export function AIAssistant() {
   const [pending, setPending] = React.useState(false);
   const [messages, setMessages] = React.useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const scrollRef = React.useRef<HTMLDivElement>(null);
-  const inputRef = React.useRef<HTMLInputElement>(null);
+  const inputRef = React.useRef<HTMLTextAreaElement>(null);
   const hasUserMessage = messages.some((message) => message.role === "user");
 
   React.useEffect(() => {
@@ -186,15 +191,21 @@ export function AIAssistant() {
               <label htmlFor="tobeez-ai-input" className="sr-only">
                 Ask TOBEEZ AI about interiors or the platform
               </label>
-              <input
+              <textarea
                 ref={inputRef}
                 id="tobeez-ai-input"
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey && !isTouchDevice()) {
+                    event.preventDefault();
+                    send(input);
+                  }
+                }}
+                rows={1}
                 maxLength={4_000}
-                autoComplete="off"
                 placeholder="Ask anything about interiors..."
-                className="h-10 min-w-0 flex-1 rounded-full bg-[#29241f] px-4 text-[13px] text-[#f7f3ef] outline-none placeholder:text-[#8f8781] focus-visible:ring-2 focus-visible:ring-[#ff923f]/80"
+                className="max-h-28 min-h-10 min-w-0 flex-1 resize-none overflow-y-auto rounded-2xl bg-[#29241f] px-4 py-2.5 text-[13px] leading-5 text-[#f7f3ef] outline-none field-sizing-content placeholder:text-[#8f8781] focus-visible:ring-2 focus-visible:ring-[#ff923f]/80"
               />
               <button
                 type="submit"
