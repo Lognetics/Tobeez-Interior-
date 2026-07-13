@@ -35,11 +35,16 @@ import {
 } from "@/lib/ai/client";
 import { PRODUCT_IMAGES } from "@/lib/gallery";
 import { PRODUCTS } from "@/lib/data/products";
+import { payWithPaystack, verifyPayment } from "@/lib/paystack";
+import { useAppData } from "@/lib/store/app-data";
 import { useCart } from "@/lib/store/cart-store";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useSession } from "@/lib/session";
 
 type Mode = "chat" | "image" | "video";
+
+/** Studio Pro subscription price (per 30 days) — matches the header badge. */
+const STUDIO_PRO_PRICE = 43000;
 
 const MODES: { id: Mode; label: string; icon: React.ElementType; hint: string }[] = [
   { id: "chat", label: "Chat", icon: MessageSquare, hint: "Ask, plan and analyse" },
@@ -73,6 +78,8 @@ export function StudioChat() {
   const mounted = React.useSyncExternalStore(() => () => {}, () => true, () => false);
   const user = useSession((state) => state.user);
   const authReady = useSession((state) => state.authReady);
+  const studioProExpiry = useAppData((state) => state.studioPro?.expiresAt ?? 0);
+  const proActive = studioProExpiry > Date.now();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [mode, setMode] = React.useState<Mode>("chat");
 
@@ -144,7 +151,83 @@ export function StudioChat() {
           </div>
         </header>
 
-        <ChatThread key={active?.id ?? "empty"} conversationId={active?.id ?? null} mode={mode} setMode={setMode} />
+        {mode !== "chat" && !proActive ? (
+          <StudioProGate mode={mode} />
+        ) : (
+          <ChatThread key={active?.id ?? "empty"} conversationId={active?.id ?? null} mode={mode} setMode={setMode} proActive={proActive} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Image & video generation are part of the Studio Pro subscription. */
+function StudioProGate({ mode }: { mode: Mode }) {
+  const user = useSession((state) => state.user);
+  const activateStudioPro = useAppData((state) => state.activateStudioPro);
+  const addInvoice = useAppData((state) => state.addInvoice);
+  const addNotification = useAppData((state) => state.addNotification);
+  const [paying, setPaying] = React.useState(false);
+
+  async function subscribe() {
+    setPaying(true);
+    await payWithPaystack({
+      email: user?.email ?? "",
+      amount: STUDIO_PRO_PRICE,
+      metadata: { purpose: "studio_pro_subscription" },
+      onSuccess: async (ref) => {
+        await verifyPayment(ref);
+        activateStudioPro(ref);
+        addInvoice({ kind: "subscription", description: "TOBEEZ Studio Pro · 30 days", amount: STUDIO_PRO_PRICE, ref });
+        addNotification({
+          title: "Studio Pro activated",
+          kind: "payment",
+          href: "/studio",
+          body: "Premium image and video generation is unlocked for the next 30 days.",
+        });
+        setPaying(false);
+      },
+      onCancel: () => setPaying(false),
+      onError: () => setPaying(false),
+    });
+  }
+
+  return (
+    <div className="grid flex-1 place-items-center overflow-y-auto px-6 py-8">
+      <div className="w-full max-w-md rounded-3xl border border-border bg-background p-8 text-center shadow-soft">
+        <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary">
+          {mode === "video" ? <Video className="size-7" /> : <ImageIcon className="size-7" />}
+        </span>
+        <h2 className="mt-5 font-display text-2xl font-bold">
+          {mode === "video" ? "Video generation is a Studio Pro feature" : "Image generation is a Studio Pro feature"}
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Chat stays free. Studio Pro unlocks the premium generation engines for 30 days.
+        </p>
+
+        <div className="mt-6 flex items-end justify-center gap-2">
+          <span className="font-display text-4xl font-bold text-gradient">{formatCurrency(STUDIO_PRO_PRICE)}</span>
+          <span className="mb-1.5 text-sm text-muted-foreground">/ month</span>
+        </div>
+
+        <ul className="mx-auto mt-6 max-w-xs space-y-2.5 text-left">
+          {[
+            "Photorealistic interior renders in seconds",
+            "Redesign your own room from a photo",
+            "Cinematic video walkthroughs with audio",
+            "Save every design to your dashboard",
+          ].map((benefit) => (
+            <li key={benefit} className="flex items-start gap-2.5 text-sm">
+              <Check className="mt-0.5 size-4 shrink-0 text-success" /> {benefit}
+            </li>
+          ))}
+        </ul>
+
+        <Button className="mt-7 w-full" size="lg" onClick={subscribe} disabled={paying}>
+          {paying ? <Loader2 className="animate-spin" /> : <Sparkles />}
+          {paying ? "Processing…" : `Subscribe · ${formatCurrency(STUDIO_PRO_PRICE)}/mo`}
+        </Button>
+        <p className="mt-3 text-[11px] text-muted-foreground">Secure payment via Paystack. Renew anytime — no auto-billing.</p>
       </div>
     </div>
   );
@@ -208,7 +291,7 @@ function latestConversationImage(convId: string): string | undefined {
   return undefined;
 }
 
-function ChatThread({ conversationId, mode, setMode }: { conversationId: string | null; mode: Mode; setMode: (m: Mode) => void }) {
+function ChatThread({ conversationId, mode, setMode, proActive }: { conversationId: string | null; mode: Mode; setMode: (m: Mode) => void; proActive: boolean }) {
   const store = useChatStore();
   const conv = store.conversations.find((c) => c.id === conversationId) ?? null;
   const messages = conv?.messages ?? [];
@@ -267,8 +350,9 @@ function ChatThread({ conversationId, mode, setMode }: { conversationId: string 
       }));
 
     const editIntent = userAttachments.some((a) => a.kind === "image") && /redesign|edit|change|make|convert|style|improve/i.test(text);
-    const shouldImage = mode === "image" || (mode === "chat" && (wantsImage(text) || editIntent));
-    const shouldVideo = mode === "video";
+    // Generation is a Studio Pro feature — without it, chat replies stay text-only.
+    const shouldImage = proActive && (mode === "image" || (mode === "chat" && (wantsImage(text) || editIntent)));
+    const shouldVideo = proActive && mode === "video";
 
     try {
       // Kick off the visual immediately — a high-quality render takes 60–120s,

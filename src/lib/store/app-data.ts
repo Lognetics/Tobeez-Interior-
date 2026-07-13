@@ -47,11 +47,14 @@ export type SavedEstimate = {
 };
 
 export type Invoice = {
-  id: string; number: string; kind: "consultation" | "order" | "estimate";
+  id: string; number: string; kind: "consultation" | "order" | "estimate" | "subscription";
   description: string; amount: number; status: "paid" | "due"; ref?: string; createdAt: number;
 };
 
 export type SavedDesign = { id: string; prompt: string; src: string; createdAt: number };
+
+/** Studio Pro subscription (₦43,000 / 30 days) — unlocks image & video generation. */
+export type StudioProSub = { ref: string; activatedAt: number; expiresAt: number };
 
 let counter = 1;
 const uid = (p: string) => `${p}_${Date.now().toString(36)}_${counter++}`;
@@ -66,6 +69,7 @@ type AppState = {
   estimates: SavedEstimate[];
   invoices: Invoice[];
   savedDesigns: SavedDesign[];
+  studioPro: StudioProSub | null;
 
   addOrder: (o: Omit<Order, "id" | "createdAt" | "status">) => Order;
   addBooking: (b: Omit<Booking, "id" | "createdAt" | "status">) => Booking;
@@ -78,6 +82,7 @@ type AppState = {
   addEstimate: (e: Omit<SavedEstimate, "id" | "createdAt">) => SavedEstimate;
   addInvoice: (i: Omit<Invoice, "id" | "createdAt" | "number" | "status"> & { status?: Invoice["status"] }) => Invoice;
   saveDesign: (d: { prompt: string; src: string }) => void;
+  activateStudioPro: (ref: string) => void;
   unreadCount: () => number;
   clearAll: () => void;
 };
@@ -93,6 +98,7 @@ export const useAppData = create<AppState>()(
       estimates: [],
       invoices: [],
       savedDesigns: [],
+      studioPro: null,
 
       addOrder: (o) => {
         const order: Order = { ...o, id: uid("ord"), status: "processing", createdAt: Date.now() };
@@ -132,8 +138,10 @@ export const useAppData = create<AppState>()(
         return inv;
       },
       saveDesign: (d) => set((s) => ({ savedDesigns: [{ ...d, id: uid("dsn"), createdAt: Date.now() }, ...s.savedDesigns] })),
+      activateStudioPro: (ref) =>
+        set({ studioPro: { ref, activatedAt: Date.now(), expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000 } }),
       unreadCount: () => get().notifications.filter((n) => !n.read).length,
-      clearAll: () => set({ bookings: [], notifications: [], conversations: [], orders: [], projects: [], estimates: [], invoices: [], savedDesigns: [] }),
+      clearAll: () => set({ bookings: [], notifications: [], conversations: [], orders: [], projects: [], estimates: [], invoices: [], savedDesigns: [], studioPro: null }),
     }),
     { name: "tobeez-app-data" },
   ),

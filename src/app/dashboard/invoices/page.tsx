@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useAppData, type Invoice } from "@/lib/store/app-data";
 import { formatCurrency } from "@/lib/utils";
 
-const KIND_LABEL: Record<Invoice["kind"], string> = { consultation: "Consultation", order: "Order", estimate: "AI Estimate" };
+const KIND_LABEL: Record<Invoice["kind"], string> = { consultation: "Consultation", order: "Order", estimate: "AI Estimate", subscription: "Studio Pro" };
 
 export default function InvoicesPage() {
   const invoices = useAppData((s) => s.invoices);

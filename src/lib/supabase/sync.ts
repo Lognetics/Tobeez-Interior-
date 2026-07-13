@@ -12,7 +12,7 @@ import { useAppData } from "@/lib/store/app-data";
  * working from local storage.
  */
 
-const DATA_KEYS = ["bookings", "notifications", "conversations", "orders", "projects", "estimates", "invoices", "savedDesigns"] as const;
+const DATA_KEYS = ["bookings", "notifications", "conversations", "orders", "projects", "estimates", "invoices", "savedDesigns", "studioPro"] as const;
 
 type Snapshot = Partial<Record<(typeof DATA_KEYS)[number], unknown>>;
 
