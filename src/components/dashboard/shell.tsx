@@ -29,7 +29,18 @@ export function DashboardShell({
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [menuOpen, setMenuOpen] = React.useState(false);
   const [signingOut, setSigningOut] = React.useState(false);
+  const settingsHref = nav.find((item) => item.label === "Settings")?.href;
+
+  React.useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
   const sessionUser = useSession((s) => s.user);
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
@@ -141,7 +152,46 @@ export function DashboardShell({
           <div className="ml-auto flex items-center gap-1.5">
             <ThemeToggle />
             <NotificationBell />
-            <span className="ml-1 grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{display.initials}</span>
+            <div className="relative ml-1">
+              <button
+                onClick={() => setMenuOpen((value) => !value)}
+                aria-label="Account menu"
+                aria-expanded={menuOpen}
+                className="grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary transition-shadow hover:ring-2 hover:ring-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {display.initials}
+              </button>
+              {menuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+                  <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+                    <div className="border-b border-border px-4 py-3">
+                      <p className="truncate text-sm font-medium">{display.name}</p>
+                      <p className="text-xs capitalize text-muted-foreground">{role}</p>
+                    </div>
+                    <div className="p-1.5">
+                      {settingsHref && (
+                        <Link
+                          href={settingsHref}
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                          <Icons.Settings className="size-4" /> Settings
+                        </Link>
+                      )}
+                      <button
+                        onClick={() => { setMenuOpen(false); handleSignOut(); }}
+                        disabled={signingOut}
+                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                      >
+                        {signingOut ? <Icons.Loader2 className="size-4 animate-spin" /> : <Icons.LogOut className="size-4" />}
+                        Sign out
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </header>
         <main className="p-4 sm:p-6 lg:p-8">
