@@ -4,10 +4,9 @@ import * as React from "react";
 import { animate, motion, useInView } from "framer-motion";
 
 const stats = [
-  { value: 2400, suffix: "+", label: "Projects Completed" },
-  { value: 6, suffix: "", label: "Countries Served" },
-  { value: 15, suffix: "", label: "Design Styles" },
-  { value: 12000, suffix: "+", label: "Furniture Items" },
+  { value: 20, suffix: "", label: "Projects Completed" },
+  { value: 1, suffix: "", label: "Country Served" },
+  { value: 10, suffix: "", label: "Design Styles" },
 ];
 
 function Counter({ to, suffix }: { to: number; suffix: string }) {
@@ -32,7 +31,7 @@ function Counter({ to, suffix }: { to: number; suffix: string }) {
 export function Stats() {
   return (
     <section className="border-y border-border bg-muted/30 py-14">
-      <div className="mx-auto grid w-full max-w-7xl grid-cols-2 gap-6 px-5 sm:px-8 md:grid-cols-4">
+      <div className="mx-auto grid w-full max-w-7xl grid-cols-3 gap-6 px-5 sm:px-8">
         {stats.map((s, i) => (
           <motion.div
             key={s.label}

@@ -17,7 +17,17 @@ function mapProduct(r: ProductRow): Product {
   return { ...r, tag: (r.tag as Product["tag"]) ?? undefined };
 }
 
+/**
+ * Marketplace pause switch. The client asked for all demo products to be
+ * removed until the real catalogue (with their own photos) is ready. While
+ * false, the marketplace serves an empty catalogue and IGNORES the Supabase
+ * `products` table, which still holds the old demo rows. Flip to true once
+ * real products are loaded.
+ */
+const MARKETPLACE_STOCKED = false;
+
 export async function getProducts(): Promise<{ products: Product[]; source: "supabase" | "fallback" }> {
+  if (!MARKETPLACE_STOCKED) return { products: [], source: "fallback" };
   try {
     const { data, error } = await supabase.from("products").select("*").order("id");
     if (error || !data || data.length === 0) return { products: PRODUCTS, source: "fallback" };
@@ -28,6 +38,7 @@ export async function getProducts(): Promise<{ products: Product[]; source: "sup
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
+  if (!MARKETPLACE_STOCKED) return null;
   try {
     const { data, error } = await supabase.from("products").select("*").eq("id", id).maybeSingle();
     if (error || !data) return PRODUCTS.find((p) => p.id === id) ?? null;

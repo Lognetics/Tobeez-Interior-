@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * Real AI provider layer (server-only — used by route handlers).
  *
@@ -23,9 +25,10 @@ export type AIMessage = {
 export const SYSTEM_PROMPT =
   "You are TOBEEZ AI, the intelligent assistant for TOBEEZ Interiors, a premium AI interior " +
   "technology platform. You are an expert interior designer (styles, space planning, materials, " +
-  "furniture, lighting, colour, budgeting and cost estimation) but you are also a capable general " +
-  "assistant and can help with any task: writing, analysis, planning, coding and answering questions. " +
-  "Be warm, concise and practical. Use markdown (headings, bold, bullet lists) for structured answers. " +
+  "furniture, lighting, colour, budgeting and cost estimation). Stay focused on interior planning and " +
+  "the TOBEEZ platform. Never invent TOBEEZ prices, product availability, policies, people, or features; " +
+  "platform-specific claims must come from retrieved context supplied in a separate system message. " +
+  "Be warm, concise and practical. Use light markdown for structured answers. " +
   "When a user uploads a room photo, analyse it and give specific, actionable redesign guidance. " +
   "When helpful, offer to generate images or an estimate. Currency is Nigerian Naira (₦) unless told otherwise.";
 
@@ -38,20 +41,21 @@ function toOpenAIContent(m: AIMessage): string | AIPart[] {
 }
 
 function withSystem(messages: AIMessage[]): AIMessage[] {
-  return messages.some((m) => m.role === "system")
-    ? messages
-    : [{ role: "system", content: SYSTEM_PROMPT }, ...messages];
+  return [
+    { role: "system", content: SYSTEM_PROMPT },
+    ...messages.filter((message) => message.role === "system"),
+    ...messages.filter((message) => message.role !== "system"),
+  ];
 }
 
 async function viaOpenAI(messages: AIMessage[], key: string): Promise<string> {
-  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+  const model = process.env.OPENAI_MODEL || "gpt-5.5";
   const r = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
     body: JSON.stringify({
       model,
       messages: withSystem(messages).map((m) => ({ role: m.role, content: toOpenAIContent(m) })),
-      temperature: 0.7,
     }),
   });
   if (!r.ok) throw new Error(`OpenAI ${r.status}`);
@@ -61,7 +65,8 @@ async function viaOpenAI(messages: AIMessage[], key: string): Promise<string> {
 
 async function viaAnthropic(messages: AIMessage[], key: string): Promise<string> {
   const model = process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-latest";
-  const sys = messages.find((m) => m.role === "system")?.content ?? SYSTEM_PROMPT;
+  const prepared = withSystem(messages);
+  const sys = prepared.filter((m) => m.role === "system").map((m) => m.content).join("\n\n");
   const convo = messages.filter((m) => m.role !== "system");
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -100,13 +105,46 @@ async function viaPollinations(messages: AIMessage[]): Promise<string> {
   return j.choices?.[0]?.message?.content ?? j.response ?? "";
 }
 
-/** Real chat completion (text + optional vision). Throws on total failure. */
-export async function chatComplete(messages: AIMessage[]): Promise<string> {
+/**
+ * Real chat completion (text + optional vision). Cascades OpenAI → Anthropic →
+ * keyless so a single provider hiccup (rate limit, timeout) never surfaces as
+ * "AI service cannot be reached". Set allowKeylessFallback to false when the
+ * messages contain private user records — those must stay off keyless
+ * third-party inference, so keyed-provider failure throws instead.
+ */
+export async function chatComplete(
+  messages: AIMessage[],
+  options: { allowKeylessFallback?: boolean } = {},
+): Promise<string> {
+  const { allowKeylessFallback = true } = options;
   const openai = process.env.OPENAI_API_KEY;
   const anthropic = process.env.ANTHROPIC_API_KEY;
-  if (openai) return viaOpenAI(messages, openai);
-  if (anthropic) return viaAnthropic(messages, anthropic);
-  return viaPollinations(messages);
+
+  let lastError: unknown;
+  if (openai) {
+    try {
+      return await viaOpenAI(messages, openai);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (anthropic) {
+    try {
+      return await viaAnthropic(messages, anthropic);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  const keylessIsPrimary = !openai && !anthropic;
+  if (keylessIsPrimary || allowKeylessFallback) {
+    try {
+      return await viaPollinations(messages);
+    } catch (error) {
+      throw lastError ?? error;
+    }
+  }
+  throw lastError ?? new Error("No AI provider available");
 }
 
 /** Which real provider is active (for UI display). */

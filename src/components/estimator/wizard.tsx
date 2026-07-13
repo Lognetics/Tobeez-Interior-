@@ -259,7 +259,7 @@ function StepContent({ step, data, setData, toggle }: StepProps) {
         </div>
       );
     case 13:
-      return <div className="grid gap-3 sm:grid-cols-2">{SPECIAL_FEATURES.map((f) => <SelectableCard key={f.id} selected={data.features?.includes(f.id) ?? false} onClick={() => toggle("features", f.id)} title={f.label} subtitle={`+ ${formatCurrency(f.cost)}`} icon={<Icons.Zap className="size-5" />} />)}</div>;
+      return <div className="grid gap-3 sm:grid-cols-2">{SPECIAL_FEATURES.map((f) => <SelectableCard key={f.id} selected={data.features?.includes(f.id) ?? false} onClick={() => toggle("features", f.id)} title={f.label} subtitle={`+ ${formatCurrency(f.costMin)} – ${formatCurrency(f.costMax)}`} icon={<Icons.Zap className="size-5" />} />)}</div>;
     case 14:
       return <AIReview data={data} />;
     default:

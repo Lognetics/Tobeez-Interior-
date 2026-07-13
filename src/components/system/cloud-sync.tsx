@@ -1,9 +1,30 @@
 "use client";
 
 import * as React from "react";
+import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 import { useAppData } from "@/lib/store/app-data";
-import { getSessionUserId, pullOrSeed, push } from "@/lib/supabase/sync";
+import { pullOrSeed, push } from "@/lib/supabase/sync";
+import { useSession } from "@/lib/session";
+
+function mirrorAuthUser(user: User | null) {
+  const session = useSession.getState();
+  if (!user) {
+    session.signOut();
+    session.setAuthReady(true);
+    return;
+  }
+
+  const metadataName = typeof user.user_metadata?.full_name === "string"
+    ? user.user_metadata.full_name.trim()
+    : "";
+  const email = user.email ?? "";
+  const fallbackName = email
+    ? email.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
+    : "TOBEEZ member";
+  session.signIn({ name: metadataName || fallbackName, email });
+  session.setAuthReady(true);
+}
 
 /**
  * Mounts once (in Providers). Everything runs in effects — never during render —
@@ -18,8 +39,11 @@ export function CloudSync() {
     let mounted = true;
 
     async function activate() {
-      const uid = await getSessionUserId();
+      const { data, error } = await supabase.auth.getUser();
       if (!mounted) return;
+      const user = error ? null : data.user;
+      mirrorAuthUser(user);
+      const uid = user?.id ?? null;
       userIdRef.current = uid;
       if (uid) await pullOrSeed(uid);
     }
@@ -28,6 +52,7 @@ export function CloudSync() {
     // Re-run when auth state changes (login / logout).
     const { data: authSub } = supabase.auth.onAuthStateChange((_event, session) => {
       userIdRef.current = session?.user?.id ?? null;
+      mirrorAuthUser(session?.user ?? null);
       if (userIdRef.current) pullOrSeed(userIdRef.current);
     });
 

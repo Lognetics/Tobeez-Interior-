@@ -43,6 +43,8 @@ export function ConsultationBooking() {
 
   const consultant = DESIGNERS.find((d) => d.id === consultantId) ?? null;
   const { oldPrice, currentPrice, currency, discountLabel, offerLabel } = CONSULTATION_PRICING;
+  // In-person sessions carry a site-visit premium; virtual/phone use the promo price.
+  const sessionPrice = CONSULTATION_MODES.find((m) => m.id === mode)?.price ?? currentPrice;
 
   const filteredTypes = CONSULTATION_TYPES.filter((t) => t.toLowerCase().includes(typeQuery.toLowerCase()));
 
@@ -56,13 +58,13 @@ export function ConsultationBooking() {
     if (!consultant || !dateIso) return;
     const booking = addBooking({
       type, consultantId: consultant.id, consultantName: consultant.name,
-      mode, dateIso, dateLabel, time, amount: currentPrice,
+      mode, dateIso, dateLabel, time, amount: sessionPrice,
     });
     addConversation({
       bookingId: booking.id, consultantId: consultant.id, consultantName: consultant.name,
       subject: type, unlockDateIso: dateIso,
     });
-    addInvoice({ kind: "consultation", description: `${type} · ${consultant.name}`, amount: currentPrice, ref: booking.id });
+    addInvoice({ kind: "consultation", description: `${type} · ${consultant.name}`, amount: sessionPrice, ref: booking.id });
     addNotification({
       title: "Consultation confirmed", kind: "booking", href: "/dashboard/consultations",
       body: `Your ${type} with ${consultant.name} is booked for ${dateLabel} at ${time}.`,
@@ -79,8 +81,8 @@ export function ConsultationBooking() {
     setPaying(true);
     await payWithPaystack({
       email: userEmail,
-      amount: currentPrice,
-      metadata: { purpose: "consultation", type, consultant: consultant.name },
+      amount: sessionPrice,
+      metadata: { purpose: "consultation", type, consultant: consultant.name, mode },
       onSuccess: async (ref) => { await verifyPayment(ref); setPaying(false); confirmBooking(); },
       onCancel: () => setPaying(false),
       onError: () => setPaying(false),
@@ -211,6 +213,7 @@ export function ConsultationBooking() {
                           className={cn("rounded-2xl border p-4 text-left transition-all", mode === m.id ? "border-primary bg-primary/5 shadow-glow" : "border-border bg-card hover:border-primary/40")}>
                           <Icon className={cn("size-5", mode === m.id ? "text-primary" : "text-muted-foreground")} />
                           <p className="mt-2 text-sm font-medium">{m.label}</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">{formatCurrency(m.price, currency)}</p>
                         </button>
                       );
                     })}
@@ -266,7 +269,7 @@ export function ConsultationBooking() {
           ) : (
             <Button onClick={handlePay} disabled={paying}>
               {paying ? <Icons.Loader2 className="animate-spin" /> : null}
-              {paying ? "Processing…" : `Pay ${formatCurrency(currentPrice, currency)} & confirm`}
+              {paying ? "Processing…" : `Pay ${formatCurrency(sessionPrice, currency)} & confirm`}
             </Button>
           )}
         </div>
@@ -281,7 +284,7 @@ export function ConsultationBooking() {
               <Badge className="border-white/20 bg-white/15 text-primary-foreground">{discountLabel}</Badge>
             </div>
             <div className="mt-4 flex items-end gap-2">
-              <span className="font-display text-3xl font-bold">{formatCurrency(currentPrice, currency)}</span>
+              <span className="font-display text-3xl font-bold">{formatCurrency(sessionPrice, currency)}</span>
               <span className="mb-1 text-primary-foreground/70 line-through">{formatCurrency(oldPrice, currency)}</span>
             </div>
             <p className="mt-1 text-sm text-primary-foreground/80">per consultation session</p>

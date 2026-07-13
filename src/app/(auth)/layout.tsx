@@ -31,11 +31,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               Intelligent interior planning, from estimate to installation.
             </h2>
             <p className="mt-4 max-w-md text-primary-foreground/80">
-              Join thousands using TOBEEZ to plan, budget and furnish beautiful spaces with AI.
+              Plan, budget and furnish beautiful spaces with AI on TOBEEZ.
             </p>
           </div>
           <div className="flex gap-8">
-            {[["2,400+", "Projects"], ["6", "Countries"], ["4.9★", "Avg rating"]].map(([v, l]) => (
+            {[["20", "Projects"], ["1", "Country"], ["4.9★", "Avg rating"]].map(([v, l]) => (
               <div key={l}>
                 <p className="font-display text-2xl font-bold">{v}</p>
                 <p className="text-sm text-primary-foreground/70">{l}</p>

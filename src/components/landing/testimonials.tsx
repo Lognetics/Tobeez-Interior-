@@ -5,10 +5,11 @@ import { Star } from "lucide-react";
 import { Container, Section, SectionHeading } from "@/components/ui/container";
 
 const reviews = [
-  { name: "Adaeze O.", role: "Homeowner · Lagos", quote: "The estimate was within 4% of what I actually spent. It made budgeting my duplex completely stress-free.", initials: "AO" },
-  { name: "Marcus Bello", role: "Hotel Developer · Abuja", quote: "We planned a 40-room boutique hotel fit-out in an afternoon. The itemised breakdown impressed our investors.", initials: "MB" },
-  { name: "Zara K.", role: "Interior Designer", quote: "I use the designer portal for every client pitch now. Moodboards, quotes and consultations in one flow.", initials: "ZK" },
-  { name: "Tunde A.", role: "Restaurant Owner", quote: "From concept to furnished dining room, TOBEEZ kept every vendor, invoice and deadline in one dashboard.", initials: "TA" },
+  { name: "Michael Curtis", role: "Homeowner", quote: "The estimator gave me a clear, itemised budget before I spent a naira. It took the guesswork out of furnishing.", initials: "MC" },
+  { name: "Orobosa O. Matthew", role: "Property Developer", quote: "A clean process from estimate to consultation. The breakdown made it easy to plan and prioritise each phase.", initials: "OM" },
+  { name: "Success Wordu", role: "Homeowner", quote: "I uploaded a photo of my living room and got a redesign direction I genuinely loved. The consultation sealed it.", initials: "SW" },
+  { name: "Praise Ebere", role: "Client", quote: "Booking a designer was straightforward, and the expert advice saved me from expensive mistakes.", initials: "PE" },
+  { name: "Obonganwan John", role: "Homeowner", quote: "My estimate, designs and consultations all in one place. TOBEEZ made the whole journey simple.", initials: "OJ" },
 ];
 
 export function Testimonials() {

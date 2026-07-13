@@ -1,17 +1,43 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import {
-  ArrowUp, ImageIcon, Images, MessageSquarePlus, Paperclip, Play, Plus, Sparkles, Trash2, X,
-  Loader2, Video, PanelLeft, Wand2, Bot, User, MessageSquare,
+  ArrowUp, Check, ImageIcon, ImagePlus, Maximize2, MessageSquarePlus, Paperclip, Play, Plus, Sparkles, Star, Trash2, X,
+  Loader2, Video, PanelLeft, Wand2, Bot, User, MessageSquare, LockKeyhole,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Markdown } from "@/components/ui/markdown";
 import { GeneratedImage } from "./generated-image";
-import { useChatStore, type StudioAttachment } from "@/lib/ai/chat-store";
-import { sendChat, wantsImage, fileToDataUrl, buildImageUrl, fallbackImage, type ChatMessage } from "@/lib/ai/client";
-import { cn } from "@/lib/utils";
+import { MediaLightbox, type LightboxMedia } from "./media-lightbox";
+import {
+  useChatStore,
+  type StudioAttachment,
+  type StudioGeneratedImage,
+  type StudioGeneratedVideo,
+  type StudioMessage,
+} from "@/lib/ai/chat-store";
+import {
+  AIClientError,
+  buildImageUrl,
+  fallbackImage,
+  fileToDataUrl,
+  generateImageAsset,
+  generateVideoJob,
+  getVideoJob,
+  getVideoObjectUrl,
+  sendChat,
+  wantsImage,
+  type ChatMessage,
+  type RecommendedProduct,
+} from "@/lib/ai/client";
+import { PRODUCT_IMAGES } from "@/lib/gallery";
+import { PRODUCTS } from "@/lib/data/products";
+import { useCart } from "@/lib/store/cart-store";
+import { cn, formatCurrency } from "@/lib/utils";
+import { useSession } from "@/lib/session";
 
 type Mode = "chat" | "image" | "video";
 
@@ -44,14 +70,16 @@ const SUGGESTIONS: Record<Mode, { icon: React.ElementType; text: string }[]> = {
 
 export function StudioChat() {
   const store = useChatStore();
-  const [mounted, setMounted] = React.useState(false);
+  const mounted = React.useSyncExternalStore(() => () => {}, () => true, () => false);
+  const user = useSession((state) => state.user);
+  const authReady = useSession((state) => state.authReady);
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [mode, setMode] = React.useState<Mode>("chat");
-  React.useEffect(() => setMounted(true), []);
 
   const active = store.conversations.find((c) => c.id === store.activeId) ?? null;
 
-  if (!mounted) return <div className="h-[calc(100dvh-8rem)] animate-pulse rounded-3xl bg-muted" />;
+  if (!mounted || !authReady) return <div className="h-[calc(100dvh-8rem)] animate-pulse rounded-3xl bg-muted" />;
+  if (!user) return <StudioAuthGate />;
 
   return (
     <div className="flex h-[calc(100dvh-8rem)] overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
@@ -122,6 +150,64 @@ export function StudioChat() {
   );
 }
 
+function StudioAuthGate() {
+  return (
+    <div className="grid h-[calc(100dvh-8rem)] place-items-center rounded-3xl border border-border bg-card px-6 text-center shadow-soft">
+      <div className="max-w-md">
+        <span className="mx-auto grid size-16 place-items-center rounded-2xl bg-primary/10 text-primary">
+          <LockKeyhole className="size-7" />
+        </span>
+        <h1 className="mt-6 font-display text-2xl font-bold">Sign in to TOBEEZ AI Studio</h1>
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">
+          Chat, image generation, and video generation use your private TOBEEZ projects and saved estimates. Sign in so that context stays attached to the right workspace.
+        </p>
+        <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
+          <Button asChild><Link href="/login?next=/studio">Sign in to continue</Link></Button>
+          <Button asChild variant="outline"><Link href="/signup?next=/studio">Create an account</Link></Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Replies saved before product cards existed carry marketplace matches as a
+ * plain "From the TOBEEZ marketplace: …" text line. Recover those products
+ * from the catalogue at render time and hide the raw line, so old chats show
+ * the same linked cards as new ones.
+ */
+function messagePresentation(message: StudioMessage): { displayContent: string; products: RecommendedProduct[] } {
+  if (message.role !== "assistant") return { displayContent: message.content, products: [] };
+  if (message.products?.length) return { displayContent: message.content, products: message.products };
+
+  const marketplaceLine = /^\s*From the TOBEEZ marketplace:.*$/im;
+  const match = message.content.match(marketplaceLine);
+  if (!match) return { displayContent: message.content, products: [] };
+
+  const lineLower = match[0].toLowerCase();
+  const products = PRODUCTS
+    .filter((product) => lineLower.includes(product.name.toLowerCase()))
+    .slice(0, 3)
+    .map(({ id, name, brand, category, price, rating, reviews }) => ({ id, name, brand, category, price, rating, reviews }));
+  if (!products.length) return { displayContent: message.content, products: [] };
+
+  return { displayContent: message.content.replace(marketplaceLine, "").trim(), products };
+}
+
+/** Newest image in the conversation — generated or uploaded — so video stays anchored to the room being discussed. */
+function latestConversationImage(convId: string): string | undefined {
+  const messages = useChatStore.getState().conversations.find((c) => c.id === convId)?.messages ?? [];
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const generated = messages[i].generated?.filter(
+      (g): g is StudioGeneratedImage => typeof g !== "string",
+    );
+    if (generated?.length) return generated[generated.length - 1].url;
+    const images = messages[i].attachments?.filter((a) => a.kind === "image");
+    if (images?.length) return images[images.length - 1].url;
+  }
+  return undefined;
+}
+
 function ChatThread({ conversationId, mode, setMode }: { conversationId: string | null; mode: Mode; setMode: (m: Mode) => void }) {
   const store = useChatStore();
   const conv = store.conversations.find((c) => c.id === conversationId) ?? null;
@@ -130,6 +216,10 @@ function ChatThread({ conversationId, mode, setMode }: { conversationId: string 
   const [input, setInput] = React.useState("");
   const [attachments, setAttachments] = React.useState<StudioAttachment[]>([]);
   const [busy, setBusy] = React.useState(false);
+  const [visual, setVisual] = React.useState<{ id: string; kind: "image" | "video"; error: string } | null>(null);
+  const [lightbox, setLightbox] = React.useState<LightboxMedia | null>(null);
+  const [dragging, setDragging] = React.useState(false);
+  const dragDepth = React.useRef(0);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
@@ -139,13 +229,18 @@ function ChatThread({ conversationId, mode, setMode }: { conversationId: string 
 
   async function onFiles(files: FileList | null) {
     if (!files) return;
+    const media = Array.from(files).filter((f) => f.type.startsWith("image") || f.type.startsWith("video"));
     const next: StudioAttachment[] = [];
-    for (const f of Array.from(files).slice(0, 4)) {
+    for (const f of media.slice(0, 4)) {
       const kind = f.type.startsWith("video") ? "video" : "image";
       const url = kind === "image" ? await fileToDataUrl(f) : URL.createObjectURL(f);
       next.push({ kind, url, name: f.name });
     }
     setAttachments((a) => [...a, ...next].slice(0, 4));
+  }
+
+  function draggingFiles(e: React.DragEvent) {
+    return e.dataTransfer.types.includes("Files");
   }
 
   async function send() {
@@ -176,7 +271,62 @@ function ChatThread({ conversationId, mode, setMode }: { conversationId: string 
     const shouldVideo = mode === "video";
 
     try {
-      const { text: reply } = await sendChat(history);
+      // Kick off the visual immediately — a high-quality render takes 60–120s,
+      // so it must not wait behind the text reply and its typewriter.
+      const visualPrompt = text || "beautiful interior redesign based on the uploaded room";
+      // Video is anchored to the newest image in the thread when nothing new is
+      // attached, so walkthroughs animate the room under discussion instead of
+      // inventing a new one.
+      const attachedImage = userAttachments.find((attachment) => attachment.kind === "image")?.url;
+      const referenceImage = attachedImage ?? (shouldVideo ? latestConversationImage(convId) : undefined);
+      let visualTask: Promise<void> | null = null;
+      setVisual(null);
+      if (shouldVideo) {
+        setVisual({ id: assistantId, kind: "video", error: "" });
+        visualTask = generateVideoJob({ prompt: visualPrompt, aspect: "landscape", referenceImage })
+          .then((video) => {
+            store.patchMessage(convId, assistantId, {
+              video: {
+                handle: video.handle,
+                prompt: video.prompt,
+                provider: video.provider,
+                model: video.model,
+                grounded: video.grounded,
+                status: video.status,
+              },
+            });
+            setVisual(null);
+          })
+          .catch((videoError) => {
+            const message = videoError instanceof Error ? videoError.message : "Video generation failed.";
+            setVisual({ id: assistantId, kind: "video", error: message });
+          });
+      } else if (shouldImage) {
+        setVisual({ id: assistantId, kind: "image", error: "" });
+        visualTask = generateImageAsset({ prompt: visualPrompt, aspect: "landscape", referenceImage })
+          .then((image) => {
+            store.patchMessage(convId, assistantId, {
+              generated: [{
+                url: image.url,
+                prompt: image.prompt,
+                provider: image.provider,
+                model: image.model,
+                grounded: image.grounded,
+              }],
+            });
+            setVisual(null);
+          })
+          .catch((imageError) => {
+            const message = imageError instanceof Error ? imageError.message : "Image generation failed.";
+            setVisual({ id: assistantId, kind: "image", error: message });
+          });
+      }
+
+      // The route tells the model a visual is rendering below its reply, so it
+      // captions instead of consulting or pointing users at other tools.
+      const { text: reply, products: matchedProducts } = await sendChat(history, {
+        mode: shouldVideo ? "video" : shouldImage ? "image" : "chat",
+      });
       const full = reply || (shouldVideo ? "Here's a concept walkthrough for your space." : "Here's what I came up with.");
       let i = 0;
       await new Promise<void>((resolve) => {
@@ -187,14 +337,16 @@ function ChatThread({ conversationId, mode, setMode }: { conversationId: string 
         }, 12);
       });
 
-      const visualPrompt = text || "beautiful interior redesign based on the uploaded room";
-      if (shouldVideo) {
-        store.patchMessage(convId, assistantId, { video: visualPrompt });
-      } else if (shouldImage) {
-        store.patchMessage(convId, assistantId, { generated: [visualPrompt, visualPrompt, visualPrompt, visualPrompt] });
+      if (matchedProducts.length > 0) {
+        store.patchMessage(convId, assistantId, { products: matchedProducts });
       }
-    } catch {
-      store.patchMessage(convId, assistantId, { content: "Sorry, I hit an error. Please try again.", pending: false });
+
+      if (visualTask) await visualTask;
+    } catch (error) {
+      const content = error instanceof AIClientError && error.code === "AUTH_REQUIRED"
+        ? "Your session has expired. Sign in again to continue using TOBEEZ AI Studio."
+        : "Sorry, I hit an error. Please try again.";
+      store.patchMessage(convId, assistantId, { content, pending: false });
     } finally {
       store.patchMessage(convId, assistantId, { pending: false });
       setBusy(false);
@@ -205,7 +357,37 @@ function ChatThread({ conversationId, mode, setMode }: { conversationId: string 
   const placeholder = mode === "image" ? "Describe an image to generate…" : mode === "video" ? "Describe a walkthrough to generate…" : "Message TOBEEZ AI…";
 
   return (
-    <>
+    <div
+      className="relative flex min-h-0 min-w-0 flex-1 flex-col"
+      onDragEnter={(e) => {
+        if (!draggingFiles(e)) return;
+        e.preventDefault();
+        dragDepth.current += 1;
+        setDragging(true);
+      }}
+      onDragOver={(e) => {
+        if (draggingFiles(e)) e.preventDefault();
+      }}
+      onDragLeave={() => {
+        if (dragDepth.current > 0 && (dragDepth.current -= 1) === 0) setDragging(false);
+      }}
+      onDrop={(e) => {
+        if (!draggingFiles(e)) return;
+        e.preventDefault();
+        dragDepth.current = 0;
+        setDragging(false);
+        void onFiles(e.dataTransfer.files);
+      }}
+    >
+      {dragging && (
+        <div className="pointer-events-none absolute inset-2 z-40 grid place-items-center rounded-2xl border-2 border-dashed border-primary bg-primary/10 backdrop-blur-[2px]">
+          <div className="flex flex-col items-center gap-2 text-center">
+            <span className="grid size-12 place-items-center rounded-2xl bg-primary text-primary-foreground"><ImagePlus className="size-6" /></span>
+            <p className="text-sm font-semibold">Drop your room photo or video</p>
+            <p className="text-xs text-muted-foreground">Up to 4 files — I&apos;ll redesign what you drop</p>
+          </div>
+        </div>
+      )}
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
         {messages.length === 0 ? (
           <div className="mx-auto flex h-full max-w-2xl flex-col items-center justify-center px-4 text-center">
@@ -214,7 +396,7 @@ function ChatThread({ conversationId, mode, setMode }: { conversationId: string 
               {mode === "image" ? "Generate any interior visual" : mode === "video" ? "Create a walkthrough concept" : "How can I help design your space?"}
             </h2>
             <p className="mt-1.5 text-muted-foreground">
-              {mode === "image" ? "Describe a space or upload a room to redesign it." : mode === "video" ? "Describe a camera move through your space." : "Ask anything, generate concepts, or upload a room photo."}
+              {mode === "image" ? "Describe a space, or drag & drop a room photo to redesign it." : mode === "video" ? "Describe a camera move, or drop a room photo to animate it." : "Ask anything, generate concepts, or drop in a room photo."}
             </p>
             <div className="mt-7 grid w-full gap-2.5 sm:grid-cols-2">
               {SUGGESTIONS[mode].map((s) => (
@@ -227,7 +409,9 @@ function ChatThread({ conversationId, mode, setMode }: { conversationId: string 
           </div>
         ) : (
           <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
-            {messages.map((m) => (
+            {messages.map((m) => {
+              const { displayContent, products: messageProducts } = messagePresentation(m);
+              return (
               <div key={m.id} className="flex gap-3">
                 <span className={cn("grid size-8 shrink-0 place-items-center rounded-full",
                   m.role === "assistant" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground")}>
@@ -239,13 +423,25 @@ function ChatThread({ conversationId, mode, setMode }: { conversationId: string 
                     <div className="mb-2 flex flex-wrap gap-2">
                       {m.attachments.map((a, i) => a.kind === "image" ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img key={i} src={a.url} alt={a.name} className="size-24 rounded-xl border border-border object-cover" />
+                        <img
+                          key={i}
+                          src={a.url}
+                          alt={a.name}
+                          className="size-24 cursor-zoom-in rounded-xl border border-border object-cover"
+                          onClick={() => setLightbox({ kind: "image", url: a.url, alt: a.name })}
+                        />
                       ) : (
-                        <video key={i} src={a.url} className="size-24 rounded-xl border border-border object-cover" muted />
+                        <video
+                          key={i}
+                          src={a.url}
+                          className="size-24 cursor-zoom-in rounded-xl border border-border object-cover"
+                          muted
+                          onClick={() => setLightbox({ kind: "video", url: a.url, alt: a.name })}
+                        />
                       ))}
                     </div>
                   )}
-                  {m.content && <Markdown>{m.content}</Markdown>}
+                  {displayContent && <Markdown>{displayContent}</Markdown>}
                   {m.pending && !m.content && (
                     <span className="inline-flex gap-1 py-1">
                       {[0, 0.15, 0.3].map((d) => (
@@ -254,14 +450,47 @@ function ChatThread({ conversationId, mode, setMode }: { conversationId: string 
                     </span>
                   )}
                   {m.generated && m.generated.length > 0 && (
-                    <div className="mt-3 grid grid-cols-2 gap-2 sm:max-w-md">
-                      {m.generated.map((p, i) => <GeneratedImage key={i} prompt={p} />)}
+                    <div className="mt-3 grid gap-2 sm:max-w-2xl">
+                      {m.generated.map((asset, i) => <GeneratedImage key={i} asset={asset} />)}
                     </div>
                   )}
-                  {m.video && <VideoPreview prompt={m.video} />}
+                  {m.video && <VideoPreview video={m.video} />}
+                  {visual?.id === m.id && !m.generated && !m.video && (
+                    <div className="mt-3 sm:max-w-2xl">
+                      <div className="grid aspect-video place-items-center rounded-2xl border border-border bg-muted p-6">
+                        {visual.error ? (
+                          <p className="text-center text-sm text-destructive">
+                            {visual.kind === "video" ? "Video generation failed: " : "Image generation failed: "}
+                            {visual.error}
+                          </p>
+                        ) : (
+                          <div className="flex flex-col items-center gap-2 text-center text-muted-foreground">
+                            <Loader2 className="size-6 animate-spin" />
+                            <span className="text-xs">
+                              {visual.kind === "video" ? "Starting your cinematic walkthrough…" : "Generating your redesign…"}
+                            </span>
+                            <span className="text-[10px]">
+                              {visual.kind === "video"
+                                ? "Veo renders take one to three minutes."
+                                : "High-quality renders take about a minute — the reply continues meanwhile."}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {messageProducts.length > 0 && (
+                    <div className="mt-3 sm:max-w-2xl">
+                      <p className="mb-2 text-xs font-semibold text-muted-foreground">Shop this look on the TOBEEZ marketplace</p>
+                      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                        {messageProducts.map((product) => <ChatProductCard key={product.id} product={product} />)}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -275,14 +504,14 @@ function ChatThread({ conversationId, mode, setMode }: { conversationId: string 
                 <div key={i} className="relative">
                   {a.kind === "image"
                     // eslint-disable-next-line @next/next/no-img-element
-                    ? <img src={a.url} alt={a.name} className="size-16 rounded-lg border border-border object-cover" />
-                    : <div className="grid size-16 place-items-center rounded-lg border border-border bg-muted"><Video className="size-5 text-muted-foreground" /></div>}
+                    ? <img src={a.url} alt={a.name} className="size-16 cursor-zoom-in rounded-lg border border-border object-cover" onClick={() => setLightbox({ kind: "image", url: a.url, alt: a.name })} />
+                    : <button className="grid size-16 place-items-center rounded-lg border border-border bg-muted" onClick={() => setLightbox({ kind: "video", url: a.url, alt: a.name })} aria-label="Preview video"><Video className="size-5 text-muted-foreground" /></button>}
                   <button onClick={() => setAttachments((x) => x.filter((_, j) => j !== i))} className="absolute -right-1.5 -top-1.5 grid size-5 place-items-center rounded-full bg-foreground text-background" aria-label="Remove"><X className="size-3" /></button>
                 </div>
               ))}
             </div>
           )}
-          <div className="flex items-end gap-2 rounded-3xl border border-border bg-background p-2 shadow-soft focus-within:ring-2 focus-within:ring-ring">
+          <div className="flex items-center gap-2 rounded-3xl border border-border bg-background p-2 shadow-soft focus-within:ring-2 focus-within:ring-ring">
             <input ref={fileRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={(e) => onFiles(e.target.files)} />
             <Button variant="ghost" size="icon" onClick={() => fileRef.current?.click()} aria-label="Attach image or video"><Paperclip /></Button>
             {/* Composer mode toggle (cycles Chat → Image → Video) */}
@@ -297,6 +526,12 @@ function ChatThread({ conversationId, mode, setMode }: { conversationId: string 
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+              onPaste={(e) => {
+                if (e.clipboardData.files.length > 0) {
+                  e.preventDefault();
+                  void onFiles(e.clipboardData.files);
+                }
+              }}
               rows={1}
               placeholder={placeholder}
               className="max-h-40 flex-1 resize-none bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground"
@@ -307,48 +542,162 @@ function ChatThread({ conversationId, mode, setMode }: { conversationId: string 
           </div>
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
             {mode === "video"
-              ? "Video renders a real concept keyframe. Full motion generation activates with a provider key."
-              : "TOBEEZ AI can make mistakes. Real text + image generation."}
+              ? "Real Veo video generation can take one to three minutes. Keep this page open while it renders."
+              : "TOBEEZ AI grounds responses and visuals in your workspace and verified platform records."}
           </p>
         </div>
       </div>
-    </>
+      <MediaLightbox media={lightbox} onClose={() => setLightbox(null)} />
+    </div>
   );
 }
 
-function VideoPreview({ prompt }: { prompt: string }) {
-  const [status, setStatus] = React.useState<"loading" | "ok" | "fallback">("loading");
-  const [seed, setSeed] = React.useState(() => Math.floor(Math.random() * 1_000_000));
-  const liveUrl = buildImageUrl(`cinematic wide shot, ${prompt}`, { width: 768, height: 432, seed });
-  const shownUrl = status === "fallback" ? fallbackImage(prompt, seed) : liveUrl;
+/** Marketplace product matched to a generated design — same look as the marketplace grid, links to the product page. */
+function ChatProductCard({ product }: { product: RecommendedProduct }) {
+  const addToCart = useCart((s) => s.addToCart);
+  const [added, setAdded] = React.useState(false);
 
+  return (
+    <div className="group overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all hover:-translate-y-0.5">
+      <Link href={`/marketplace/${product.id}`} className="block">
+        <div className="relative aspect-4/3 overflow-hidden bg-muted">
+          {PRODUCT_IMAGES[product.id] && (
+            <Image
+              src={PRODUCT_IMAGES[product.id]}
+              alt={product.name}
+              fill
+              sizes="(max-width: 640px) 45vw, 220px"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          )}
+        </div>
+      </Link>
+      <div className="p-2.5">
+        <p className="text-[10px] text-muted-foreground">{product.brand}</p>
+        <Link href={`/marketplace/${product.id}`} className="mt-0.5 block truncate text-xs font-medium hover:text-primary">
+          {product.name}
+        </Link>
+        <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+          <Star className="size-3 fill-primary text-primary" />
+          <span className="font-medium text-foreground">{product.rating}</span>
+          <span>({product.reviews})</span>
+        </div>
+        <div className="mt-2 flex items-center justify-between gap-1.5">
+          <span className="truncate text-xs font-semibold">{formatCurrency(product.price)}</span>
+          <Button
+            size="sm"
+            variant={added ? "default" : "outline"}
+            className="h-7 shrink-0 px-2.5 text-xs"
+            onClick={() => {
+              addToCart(product.id);
+              setAdded(true);
+              setTimeout(() => setAdded(false), 1400);
+            }}
+          >
+            {added ? <Check className="size-3.5" /> : "Add"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VideoPreview({ video }: { video: StudioGeneratedVideo | string }) {
+  if (typeof video === "string") return <LegacyVideoPreview prompt={video} />;
+  return <GeneratedVideoPreview video={video} />;
+}
+
+function GeneratedVideoPreview({ video }: { video: StudioGeneratedVideo }) {
+  const [status, setStatus] = React.useState(video.status);
+  const [url, setUrl] = React.useState<string | null>(null);
+  const [error, setError] = React.useState("");
+  const [lightbox, setLightbox] = React.useState<LightboxMedia | null>(null);
+
+  React.useEffect(() => {
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    async function poll() {
+      try {
+        const result = await getVideoJob(video.handle);
+        if (!active) return;
+        setStatus(result.status);
+        if (result.status === "completed") {
+          const objectUrl = await getVideoObjectUrl(video.handle);
+          if (!active) {
+            URL.revokeObjectURL(objectUrl);
+            return;
+          }
+          setUrl(objectUrl);
+          return;
+        }
+        if (result.status === "failed") {
+          setError(result.error || "The video provider could not complete this render.");
+          return;
+        }
+        timer = setTimeout(poll, 10_000);
+      } catch (pollError) {
+        if (active) setError(pollError instanceof Error ? pollError.message : "Unable to check video progress.");
+      }
+    }
+
+    void poll();
+    return () => {
+      active = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, [video.handle]);
+
+  React.useEffect(() => () => {
+    if (url) URL.revokeObjectURL(url);
+  }, [url]);
+
+  return (
+    <div className="mt-3 sm:max-w-2xl">
+      <div className="relative aspect-video overflow-hidden rounded-2xl border border-border bg-muted">
+        {!url && !error && (
+          <div className="absolute inset-0 z-10 grid place-items-center text-muted-foreground">
+            <div className="flex flex-col items-center gap-2 text-center">
+              <Loader2 className="size-6 animate-spin" />
+              <span className="text-xs">{status === "queued" ? "Video queued…" : "Generating cinematic walkthrough…"}</span>
+              <span className="text-[10px]">Veo renders usually take one to three minutes.</span>
+            </div>
+          </div>
+        )}
+        {url && (
+          <>
+            <video src={url} controls playsInline className="size-full object-cover" aria-label={video.prompt} />
+            <button
+              onClick={() => setLightbox({ kind: "video", url, alt: video.prompt })}
+              className="absolute right-2 top-2 z-10 grid size-8 place-items-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-black/80"
+              aria-label="Expand video"
+            >
+              <Maximize2 className="size-4" />
+            </button>
+          </>
+        )}
+        {error && <div className="absolute inset-0 grid place-items-center p-6 text-center text-sm text-destructive">{error}</div>}
+      </div>
+      <MediaLightbox media={lightbox} onClose={() => setLightbox(null)} />
+    </div>
+  );
+}
+
+function LegacyVideoPreview({ prompt }: { prompt: string }) {
+  const [status, setStatus] = React.useState<"loading" | "ok" | "fallback">("loading");
+  const liveUrl = buildImageUrl(`cinematic wide shot, ${prompt}`, { width: 768, height: 432 });
+  const shownUrl = status === "fallback" ? fallbackImage(prompt) : liveUrl;
   return (
     <div className="mt-3 sm:max-w-md">
       <div className="relative aspect-video overflow-hidden rounded-2xl border border-border bg-muted">
-        {status === "loading" && (
-          <div className="absolute inset-0 z-10 grid place-items-center text-muted-foreground">
-            <div className="flex flex-col items-center gap-2"><Loader2 className="size-6 animate-spin" /><span className="text-xs">Rendering keyframe…</span></div>
-          </div>
-        )}
+        {status === "loading" && <div className="absolute inset-0 z-10 grid place-items-center"><Loader2 className="size-6 animate-spin" /></div>}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          key={`${status}-${seed}`}
-          src={shownUrl}
-          alt={prompt}
-          className={cn("size-full object-cover transition-opacity", status === "loading" ? "opacity-0" : "opacity-100")}
-          onLoad={() => setStatus((s) => (s === "loading" ? "ok" : s))}
-          onError={() => setStatus("fallback")}
-        />
-        {status === "fallback" && (
-          <span className="absolute left-2 top-2 z-10 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">From library</span>
-        )}
-        {status !== "loading" && (
-          <div className="pointer-events-none absolute inset-0 grid place-items-center bg-black/25">
-            <span className="grid size-14 place-items-center rounded-full glass text-white"><Play className="size-6 translate-x-0.5" /></span>
-          </div>
-        )}
+        <img src={shownUrl} alt={prompt} className="size-full object-cover" onLoad={() => setStatus("ok")} onError={() => setStatus("fallback")} />
+        <div className="pointer-events-none absolute inset-0 grid place-items-center bg-black/25">
+          <span className="grid size-14 place-items-center rounded-full glass text-white"><Play className="size-6 translate-x-0.5" /></span>
+        </div>
       </div>
-      <p className="mt-1.5 text-[11px] text-muted-foreground">Concept keyframe · full AI video (motion) activates with a Replicate/Runway key.</p>
+      <p className="mt-1.5 text-[11px] text-muted-foreground">Legacy concept keyframe · create a new video for full motion.</p>
     </div>
   );
 }

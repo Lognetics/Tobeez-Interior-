@@ -133,11 +133,14 @@ export function estimate(input: EstimatorInput): EstimateResult {
 
   const coreSubtotal = items.reduce((s, i) => s + i.amount, 0);
 
-  // Special features are flat add-ons, scaled by region.
-  const featureCost = (input.features ?? []).reduce((sum, id) => {
-    const f = SPECIAL_FEATURES.find((x) => x.id === id);
-    return sum + (f ? Math.round(f.cost * regionMult) : 0);
-  }, 0);
+  // Special features are ranged add-ons scaled by region: the itemised line
+  // carries the midpoint, and the true min–max widens the final estimate range.
+  const selectedFeatures = (input.features ?? [])
+    .map((id) => SPECIAL_FEATURES.find((x) => x.id === id))
+    .filter((f): f is (typeof SPECIAL_FEATURES)[number] => Boolean(f));
+  const featureMin = selectedFeatures.reduce((sum, f) => sum + Math.round(f.costMin * regionMult), 0);
+  const featureMax = selectedFeatures.reduce((sum, f) => sum + Math.round(f.costMax * regionMult), 0);
+  const featureCost = Math.round((featureMin + featureMax) / 2);
   if (featureCost > 0) {
     items.push({ key: "features", label: "Smart & Special Features", amount: featureCost, category: "extras" });
   }
@@ -155,8 +158,11 @@ export function estimate(input: EstimatorInput): EstimateResult {
   );
 
   const subtotal = items.reduce((s, i) => s + i.amount, 0);
-  const min = Math.round((subtotal * 0.88) / 1000) * 1000;
-  const max = Math.round((subtotal * 1.18) / 1000) * 1000;
+  // Fees, tax and contingency (25.5% combined) also scale with the feature range.
+  const featureSpreadDown = Math.round((featureCost - featureMin) * 1.255);
+  const featureSpreadUp = Math.round((featureMax - featureCost) * 1.255);
+  const min = Math.max(0, Math.round((subtotal * 0.88 - featureSpreadDown) / 1000) * 1000);
+  const max = Math.round((subtotal * 1.18 + featureSpreadUp) / 1000) * 1000;
   const recommended = Math.round((subtotal * 1.05) / 1000) * 1000;
 
   const byCat = new Map<string, number>();

@@ -17,7 +17,7 @@ const OLD_PRICE = 53000;
 const TODAY_PRICE = 7000;
 
 const UNLOCKS = [
-  "Complete AI estimate with min / max range",
+  "View your full total estimate with min / max range",
   "Room-by-room cost breakdown",
   "Material & furniture recommendations",
   "Labour & timeline estimate",
@@ -83,7 +83,7 @@ export function EstimatorUnlock({ teaser }: { teaser: React.ReactNode }) {
         </span>
         <Badge className="mt-4"><Sparkles className="size-3" /> Launch Offer for Early Users</Badge>
         <h2 className="mt-4 font-display text-2xl font-bold tracking-tight">Your estimate is ready</h2>
-        <p className="mt-1 text-muted-foreground">Unlock the complete, itemised breakdown for your project.</p>
+        <p className="mt-1 text-muted-foreground">The premium unlock reveals your total estimate and the complete, itemised breakdown.</p>
 
         <div className="mt-6 flex items-end justify-center gap-3">
           <span className="font-display text-5xl font-bold text-gradient">{formatCurrency(TODAY_PRICE)}</span>

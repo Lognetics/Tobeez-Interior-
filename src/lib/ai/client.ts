@@ -1,28 +1,172 @@
 "use client";
 
+import { supabase } from "@/lib/supabase/client";
+
 /** Client-side helpers for the real AI. */
 
 export type ChatMessage = {
   role: "user" | "assistant";
   content: string;
   images?: string[]; // data URLs (uploads) or generated image URLs
+  sources?: ChatSource[];
 };
+
+export type ChatSource = {
+  id: string;
+  title: string;
+  href: string;
+  category: "platform" | "estimator" | "marketplace" | "consultation" | "account";
+};
+
+/** Marketplace product matched to a generated design, rendered as a card. */
+export type RecommendedProduct = {
+  id: string;
+  name: string;
+  brand: string;
+  category: string;
+  price: number;
+  rating: number;
+  reviews: number;
+};
+
+export class AIClientError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+    public readonly status: number,
+  ) {
+    super(message);
+    this.name = "AIClientError";
+  }
+}
+
+async function accessToken() {
+  const { data, error } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (error || !token) throw new AIClientError("Sign in to use TOBEEZ AI.", "AUTH_REQUIRED", 401);
+  return token;
+}
+
+async function authenticatedFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+  const token = await accessToken();
+  const headers = new Headers(init.headers);
+  headers.set("authorization", `Bearer ${token}`);
+  return fetch(input, { ...init, headers });
+}
+
+async function responseError(response: Response) {
+  let payload: { error?: string; code?: string } = {};
+  try {
+    payload = await response.json();
+  } catch {
+    // The provider may return a non-JSON gateway error.
+  }
+  return new AIClientError(
+    payload.error || "The AI request failed.",
+    payload.code || (response.status === 401 ? "AUTH_REQUIRED" : "AI_REQUEST_FAILED"),
+    response.status,
+  );
+}
 
 /** Call the real chat completion API (text + optional vision on uploads). */
 export async function sendChat(
   messages: ChatMessage[],
-): Promise<{ text: string; keyless: boolean; providerLabel: string }> {
-  const res = await fetch("/api/ai/chat", {
+  options?: { mode?: "chat" | "image" | "video" },
+): Promise<{
+  text: string;
+  keyless: boolean;
+  providerLabel: string;
+  sources: ChatSource[];
+  grounded: boolean;
+  fallback: boolean;
+  products: RecommendedProduct[];
+}> {
+  const res = await authenticatedFetch("/api/ai/chat", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({
+      messages: messages.map(({ role, content, images }) => ({ role, content, images })),
+      mode: options?.mode ?? "chat",
+    }),
   });
+  if (!res.ok) throw await responseError(res);
   const data = await res.json();
   return {
     text: data.text ?? "",
     keyless: data.provider?.keyless ?? true,
     providerLabel: data.provider?.label ?? "TOBEEZ AI",
+    sources: Array.isArray(data.sources) ? data.sources : [],
+    grounded: Boolean(data.grounded),
+    fallback: Boolean(data.fallback),
+    products: Array.isArray(data.products) ? data.products : [],
   };
+}
+
+export type GeneratedImageAsset = {
+  url: string;
+  prompt: string;
+  provider: string;
+  model: string;
+  grounded: boolean;
+  fallback: boolean;
+  sources: ChatSource[];
+};
+
+export async function generateImageAsset(input: {
+  prompt: string;
+  aspect?: "square" | "landscape" | "portrait";
+  referenceImage?: string;
+}): Promise<GeneratedImageAsset> {
+  const response = await authenticatedFetch("/api/ai/image", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) throw await responseError(response);
+  return response.json();
+}
+
+export type GeneratedVideoJob = {
+  handle: string;
+  prompt: string;
+  provider: string;
+  model: string;
+  grounded: boolean;
+  status: "queued" | "processing" | "completed" | "failed";
+  sources: ChatSource[];
+};
+
+export async function generateVideoJob(input: {
+  prompt: string;
+  aspect?: "landscape" | "portrait";
+  referenceImage?: string;
+}): Promise<GeneratedVideoJob> {
+  const response = await authenticatedFetch("/api/ai/video", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) throw await responseError(response);
+  return response.json();
+}
+
+export async function getVideoJob(handle: string): Promise<{
+  status: GeneratedVideoJob["status"];
+  error?: string | null;
+}> {
+  const response = await authenticatedFetch(`/api/ai/video/${encodeURIComponent(handle)}`, {
+    cache: "no-store",
+  });
+  if (!response.ok) throw await responseError(response);
+  return response.json();
+}
+
+export async function getVideoObjectUrl(handle: string) {
+  const response = await authenticatedFetch(`/api/ai/video/${encodeURIComponent(handle)}/content`, {
+    cache: "no-store",
+  });
+  if (!response.ok) throw await responseError(response);
+  return URL.createObjectURL(await response.blob());
 }
 
 /**
@@ -71,12 +215,45 @@ export function fallbackImage(prompt: string, seed = 0): string {
   return pool[Math.abs(seed) % pool.length];
 }
 
-/** Read a File into a data URL for upload/preview and vision. */
-export function fileToDataUrl(file: File): Promise<string> {
+function readAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+/**
+ * Read a File into a data URL for upload/preview and vision. Images are
+ * downscaled to a 1600px long edge and recompressed: a full-resolution phone
+ * photo is 4–10MB as base64, which blows the ~5MB localStorage quota the chat
+ * history lives in and slows generation uploads for no visual gain.
+ */
+export async function fileToDataUrl(file: File): Promise<string> {
+  const raw = await readAsDataUrl(file);
+  if (!file.type.startsWith("image/") || file.type === "image/gif") return raw;
+
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = reject;
+      el.src = raw;
+    });
+    const maxEdge = 1600;
+    const scale = Math.min(1, maxEdge / Math.max(image.naturalWidth, image.naturalHeight));
+    if (scale === 1 && raw.length <= 500_000) return raw;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const context = canvas.getContext("2d");
+    if (!context) return raw;
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.85);
+  } catch {
+    // Formats the browser can't decode (e.g. HEIC) pass through untouched.
+    return raw;
+  }
 }

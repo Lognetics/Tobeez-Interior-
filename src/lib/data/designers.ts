@@ -23,43 +23,27 @@ export type Designer = {
 
 export const DESIGNERS: Designer[] = [
   {
-    id: "d1", name: "Vee", title: "Principal Designer", initials: "V",
-    rating: 4.9, projects: 182, specialties: ["Luxury", "Residential"], rate: 100000,
+    id: "d1", name: "Victory Asaboro", title: "Lead Designer, TOBEEZ Interiors", initials: "VA",
+    rating: 4.9, projects: 20, specialties: ["Modern Luxury", "Minimalism", "3D Visualisation"], rate: 100000,
     gradient: "from-amber-300 to-orange-400", photo: "/gallery/founder.jpg",
-    bio: "Award-winning principal designer specialising in luxury residential interiors, with a signature warm-modern aesthetic.",
-    experienceYears: 12, languages: ["English", "Yoruba"], certifications: ["NIID Certified", "LEED Green Associate"],
-    responseTime: "under 2 hours", successRate: 98, completedConsultations: 640, online: true,
+    bio: "Lead Designer of TOBEEZ Interiors with qualifications in Interior Design, Project and Business Management, and a member of the Interior Designers Association of Nigeria (IDAN). Creates refined, contemporary spaces shaped by modern luxury and thoughtful minimalism — with 3D design and visualisation expertise that lets you experience your space before the transformation begins.",
+    experienceYears: 4, languages: ["English"], certifications: ["Interior Design", "Project & Business Management", "IDAN Member"],
+    responseTime: "under 4 hours", successRate: 98, completedConsultations: 20, online: true,
   },
   {
-    id: "d2", name: "Marcus Bello", title: "Commercial Lead", initials: "MB",
-    rating: 4.8, projects: 143, specialties: ["Hospitality", "Commercial"], rate: 100000,
-    gradient: "from-indigo-300 to-purple-400",
-    bio: "Leads large-scale hospitality and commercial fit-outs, from boutique hotels to corporate HQs.",
-    experienceYears: 15, languages: ["English", "French"], certifications: ["NIID Certified", "PMP"],
-    responseTime: "under 3 hours", successRate: 96, completedConsultations: 512, online: false,
-  },
-  {
-    id: "d3", name: "Zara Khan", title: "Senior Designer", initials: "ZK",
-    rating: 4.9, projects: 210, specialties: ["Minimalist", "Japandi"], rate: 100000,
-    gradient: "from-emerald-300 to-teal-400",
-    bio: "Minimalist and Japandi specialist focused on calm, functional spaces with natural materials.",
-    experienceYears: 9, languages: ["English", "Urdu", "Arabic"], certifications: ["NIID Certified"],
-    responseTime: "under 1 hour", successRate: 99, completedConsultations: 730, online: true,
-  },
-  {
-    id: "d4", name: "Tunde Adeyemi", title: "Design Consultant", initials: "TA",
-    rating: 4.7, projects: 96, specialties: ["Afro-Modern", "Restaurant"], rate: 100000,
-    gradient: "from-rose-300 to-amber-300",
-    bio: "Blends Afro-modern motifs with contemporary function for restaurants, lounges and homes.",
-    experienceYears: 7, languages: ["English", "Yoruba", "Igbo"], certifications: ["NIID Associate"],
-    responseTime: "under 4 hours", successRate: 94, completedConsultations: 288, online: true,
+    id: "d2", name: "Joy", title: "Interior Designer", initials: "J",
+    rating: 4.9, projects: 15, specialties: ["Design Reviews", "Space Planning"], rate: 100000,
+    gradient: "from-emerald-300 to-teal-400", photo: "/coporate/joy.png",
+    bio: "Interior Designer with over six years of experience and a Master's degree in Interior Design. Helps homeowners, business owners and developers make smart design decisions through professional design reviews and space-planning consultations — clear, expert guidance before you invest your time and money.",
+    experienceYears: 6, languages: ["English"], certifications: ["MSc Interior Design"],
+    responseTime: "under 6 hours", successRate: 97, completedConsultations: 15, online: true,
   },
 ];
 
 export const CONSULTATION_MODES = [
-  { id: "virtual", label: "Video Call", blurb: "Zoom / Meet session with screen sharing", icon: "Video" },
-  { id: "phone", label: "Phone Call", blurb: "Voice consultation at your scheduled time", icon: "Phone" },
-  { id: "physical", label: "In-Person", blurb: "On-site visit or studio appointment", icon: "MapPin" },
+  { id: "virtual", label: "Video Call", blurb: "Zoom / Meet session with screen sharing", icon: "Video", price: 100000 },
+  { id: "phone", label: "Phone Call", blurb: "Voice consultation at your scheduled time", icon: "Phone", price: 100000 },
+  { id: "physical", label: "In-Person", blurb: "On-site visit or studio appointment", icon: "MapPin", price: 150000 },
 ] as const;
 
 /** Promotional pricing for a consultation session. */

@@ -1,17 +1,36 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
+import type { RecommendedProduct } from "@/lib/ai/client";
 
 export type StudioAttachment = { kind: "image" | "video"; url: string; name: string };
+
+export type StudioGeneratedImage = {
+  url: string;
+  prompt: string;
+  provider: string;
+  model: string;
+  grounded: boolean;
+};
+
+export type StudioGeneratedVideo = {
+  handle: string;
+  prompt: string;
+  provider: string;
+  model: string;
+  grounded: boolean;
+  status: "queued" | "processing" | "completed" | "failed";
+};
 
 export type StudioMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
   attachments?: StudioAttachment[]; // user uploads
-  generated?: string[]; // AI-generated image URLs (prompts)
-  video?: string; // AI video prompt (renders a keyframe preview)
+  generated?: Array<StudioGeneratedImage | string>; // strings keep older persisted chats compatible
+  video?: StudioGeneratedVideo | string;
+  products?: RecommendedProduct[]; // marketplace matches for the generated design
   pending?: boolean;
   time: number;
 };
@@ -26,6 +45,49 @@ export type StudioConversation = {
 let n = 1;
 const uid = (p: string) => `${p}_${Date.now().toString(36)}_${n++}`;
 
+/**
+ * Chat media are inline data URLs, so a busy history can outgrow the ~5MB
+ * localStorage quota. When a write overflows, drop the oldest conversations
+ * (the list is newest-first) and retry — never throw into the send flow.
+ */
+const safeChatStorage = {
+  getItem: (name: string) => (typeof window === "undefined" ? null : localStorage.getItem(name)),
+  removeItem: (name: string) => {
+    if (typeof window !== "undefined") localStorage.removeItem(name);
+  },
+  setItem: (name: string, value: string) => {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.setItem(name, value);
+      return;
+    } catch {
+      try {
+        const persisted = JSON.parse(value) as { state?: { conversations?: StudioConversation[] } };
+        const conversations = persisted.state?.conversations ?? [];
+        for (let keep = conversations.length - 1; keep >= 1; keep--) {
+          try {
+            localStorage.setItem(name, JSON.stringify({
+              ...persisted,
+              state: { ...persisted.state, conversations: conversations.slice(0, keep) },
+            }));
+            return;
+          } catch {
+            // Still too big — prune one more conversation.
+          }
+        }
+      } catch {
+        // Unparseable payload; fall through to clearing the key.
+      }
+      // Even a single conversation exceeds quota: stop persisting rather than crash.
+      try {
+        localStorage.removeItem(name);
+      } catch {
+        // Storage is unavailable entirely; in-memory chat still works.
+      }
+    }
+  },
+};
+
 type ChatState = {
   conversations: StudioConversation[];
   activeId: string | null;
@@ -39,7 +101,7 @@ type ChatState = {
 
 export const useChatStore = create<ChatState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       conversations: [],
       activeId: null,
       newChat: () => {
@@ -71,7 +133,7 @@ export const useChatStore = create<ChatState>()(
       setTitle: (convId, title) =>
         set((s) => ({ conversations: s.conversations.map((c) => (c.id === convId ? { ...c, title } : c)) })),
     }),
-    { name: "tobeez-studio-chats" },
+    { name: "tobeez-studio-chats", storage: createJSONStorage(() => safeChatStorage) },
   ),
 );
 

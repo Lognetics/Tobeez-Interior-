@@ -36,9 +36,9 @@ export function Portfolio() {
     <Section id="portfolio" className="bg-muted/30">
       <Container>
         <SectionHeading
-          eyebrow="Our work"
-          title="Spaces we've brought to life"
-          description="A glimpse of the interiors our AI and designers have helped plan and furnish."
+          eyebrow="Inspiration"
+          title="Spaces you can bring to life"
+          description="Interior inspiration for the kinds of spaces you can plan, price and furnish with TOBEEZ."
         />
 
         <div className="mt-14 grid auto-rows-[220px] grid-cols-2 gap-4 md:grid-cols-4">

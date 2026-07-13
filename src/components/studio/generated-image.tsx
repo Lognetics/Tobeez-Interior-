@@ -2,67 +2,96 @@
 
 import * as React from "react";
 import { Bookmark, Check, Download, Loader2, RefreshCw } from "lucide-react";
-import { buildImageUrl, fallbackImage } from "@/lib/ai/client";
+import {
+  buildImageUrl,
+  fallbackImage,
+  generateImageAsset,
+} from "@/lib/ai/client";
+import type { StudioGeneratedImage } from "@/lib/ai/chat-store";
+import { MediaLightbox, type LightboxMedia } from "./media-lightbox";
 import { useAppData } from "@/lib/store/app-data";
 import { cn } from "@/lib/utils";
 
-/**
- * A single REAL AI-generated image. Generation happens when the browser loads
- * the URL. If the free image tier is busy/rate-limited, it AUTO-FALLS BACK to a
- * relevant stored interior photo so an image is ALWAYS shown. Users can retry
- * live generation any time.
- */
-export function GeneratedImage({ prompt, size = 512 }: { prompt: string; size?: number }) {
-  const [seed, setSeed] = React.useState(() => Math.floor(Math.random() * 1_000_000));
+export function GeneratedImage({ asset }: { asset: StudioGeneratedImage | string }) {
+  const legacyPrompt = typeof asset === "string" ? asset : asset.prompt;
+  const [current, setCurrent] = React.useState<StudioGeneratedImage>(() =>
+    typeof asset === "string"
+      ? {
+          prompt: asset,
+          url: buildImageUrl(asset, { width: 1536, height: 1024 }),
+          provider: "Legacy open image model",
+          model: "pollinations",
+          grounded: false,
+        }
+      : asset,
+  );
   const [status, setStatus] = React.useState<"loading" | "ok" | "fallback">("loading");
   const [saved, setSaved] = React.useState(false);
-  const saveDesign = useAppData((s) => s.saveDesign);
+  const [error, setError] = React.useState("");
+  const [lightbox, setLightbox] = React.useState<LightboxMedia | null>(null);
+  const saveDesign = useAppData((state) => state.saveDesign);
+  const libraryUrl = fallbackImage(legacyPrompt);
+  const shownUrl = status === "fallback" ? libraryUrl : current.url;
 
-  const liveUrl = buildImageUrl(prompt, { width: size, height: size, seed });
-  const libUrl = fallbackImage(prompt, seed);
-  const shownUrl = status === "fallback" ? libUrl : liveUrl;
-
-  function retry() {
+  async function retry() {
     setStatus("loading");
-    setSeed(Math.floor(Math.random() * 1_000_000));
+    setError("");
+    try {
+      const generated = await generateImageAsset({ prompt: legacyPrompt, aspect: "landscape" });
+      setCurrent({
+        url: generated.url,
+        prompt: generated.prompt,
+        provider: generated.provider,
+        model: generated.model,
+        grounded: generated.grounded,
+      });
+    } catch (generationError) {
+      setError(generationError instanceof Error ? generationError.message : "Regeneration failed.");
+      setStatus("fallback");
+    }
   }
 
   return (
-    <div className="group relative aspect-square overflow-hidden rounded-2xl border border-border bg-muted">
-      {status === "loading" && (
-        <div className="absolute inset-0 z-10 grid place-items-center text-muted-foreground">
-          <div className="flex flex-col items-center gap-2">
-            <Loader2 className="size-6 animate-spin" />
-            <span className="text-xs">Generating…</span>
+    <div>
+      <div className="group relative aspect-[3/2] overflow-hidden rounded-2xl border border-border bg-muted">
+        {status === "loading" && (
+          <div className="absolute inset-0 z-10 grid place-items-center text-muted-foreground">
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="size-6 animate-spin" />
+              <span className="text-xs">Generating high-quality visual…</span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        key={`${status}-${seed}`}
-        src={shownUrl}
-        alt={prompt}
-        className={cn("size-full object-cover transition-opacity duration-500", status === "loading" ? "opacity-0" : "opacity-100")}
-        onLoad={() => setStatus((s) => (s === "loading" ? "ok" : s))}
-        onError={() => setStatus("fallback")}
-      />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={shownUrl}
+          alt={legacyPrompt}
+          className={cn("size-full cursor-zoom-in object-cover transition-opacity duration-500", status === "loading" ? "opacity-0" : "opacity-100")}
+          onClick={() => setLightbox({ kind: "image", url: shownUrl, alt: legacyPrompt })}
+          onLoad={() => setStatus((value) => (value === "loading" ? "ok" : value))}
+          onError={() => setStatus("fallback")}
+        />
 
-      {status === "fallback" && (
-        <span className="absolute left-2 top-2 z-10 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
-          From library
-        </span>
-      )}
-
-      {status !== "loading" && (
-        <div className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-end gap-1.5 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
-          <button onClick={retry} className="grid size-8 place-items-center rounded-full glass text-white" aria-label="Regenerate" title="Try live generation again"><RefreshCw className="size-4" /></button>
-          <a href={shownUrl} download="tobeez-design.jpg" target="_blank" rel="noreferrer" className="grid size-8 place-items-center rounded-full glass text-white" aria-label="Download"><Download className="size-4" /></a>
-          <button onClick={() => { saveDesign({ prompt, src: shownUrl }); setSaved(true); }} className="grid size-8 place-items-center rounded-full glass text-white" aria-label="Save to project">
-            {saved ? <Check className="size-4" /> : <Bookmark className="size-4" />}
-          </button>
-        </div>
-      )}
+        {status !== "loading" && (
+          <div className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-end gap-1.5 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+            <button onClick={retry} className="grid size-8 place-items-center rounded-full glass text-white" aria-label="Regenerate image"><RefreshCw className="size-4" /></button>
+            <a href={shownUrl} download="tobeez-design.jpg" className="grid size-8 place-items-center rounded-full glass text-white" aria-label="Download image"><Download className="size-4" /></a>
+            <button
+              onClick={() => {
+                saveDesign({ prompt: legacyPrompt, src: shownUrl });
+                setSaved(true);
+              }}
+              className="grid size-8 place-items-center rounded-full glass text-white"
+              aria-label="Save image to project"
+            >
+              {saved ? <Check className="size-4" /> : <Bookmark className="size-4" />}
+            </button>
+          </div>
+        )}
+      </div>
+      {error && <p className="mt-1.5 text-xs text-destructive">{error}</p>}
+      <MediaLightbox media={lightbox} onClose={() => setLightbox(null)} />
     </div>
   );
 }
