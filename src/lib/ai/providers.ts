@@ -105,13 +105,46 @@ async function viaPollinations(messages: AIMessage[]): Promise<string> {
   return j.choices?.[0]?.message?.content ?? j.response ?? "";
 }
 
-/** Real chat completion (text + optional vision). Throws on total failure. */
-export async function chatComplete(messages: AIMessage[]): Promise<string> {
+/**
+ * Real chat completion (text + optional vision). Cascades OpenAI → Anthropic →
+ * keyless so a single provider hiccup (rate limit, timeout) never surfaces as
+ * "AI service cannot be reached". Set allowKeylessFallback to false when the
+ * messages contain private user records — those must stay off keyless
+ * third-party inference, so keyed-provider failure throws instead.
+ */
+export async function chatComplete(
+  messages: AIMessage[],
+  options: { allowKeylessFallback?: boolean } = {},
+): Promise<string> {
+  const { allowKeylessFallback = true } = options;
   const openai = process.env.OPENAI_API_KEY;
   const anthropic = process.env.ANTHROPIC_API_KEY;
-  if (openai) return viaOpenAI(messages, openai);
-  if (anthropic) return viaAnthropic(messages, anthropic);
-  return viaPollinations(messages);
+
+  let lastError: unknown;
+  if (openai) {
+    try {
+      return await viaOpenAI(messages, openai);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (anthropic) {
+    try {
+      return await viaAnthropic(messages, anthropic);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  const keylessIsPrimary = !openai && !anthropic;
+  if (keylessIsPrimary || allowKeylessFallback) {
+    try {
+      return await viaPollinations(messages);
+    } catch (error) {
+      throw lastError ?? error;
+    }
+  }
+  throw lastError ?? new Error("No AI provider available");
 }
 
 /** Which real provider is active (for UI display). */

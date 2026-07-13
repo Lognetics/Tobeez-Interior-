@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Award, Heart, Leaf, Target, Users, Zap } from "lucide-react";
+import { Award, Heart, Leaf, Mail, MapPin, Phone, Target, Users, Zap } from "lucide-react";
 import { ABOUT_COLLAGE, FOUNDER_IMAGE } from "@/lib/gallery";
+import { site } from "@/lib/site";
 import { PageHero } from "@/components/layout/page-hero";
 import { Container, Section, SectionHeading } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Process } from "@/components/landing/process";
 
 export const metadata: Metadata = {
@@ -23,9 +25,8 @@ const values = [
 
 const team: { name: string; role: string; initials: string; image?: string }[] = [
   { name: "Founder & CEO", role: "TOBEEZ Interiors", initials: "TI", image: FOUNDER_IMAGE },
-  { name: "Vee", role: "Head of Design", initials: "V" },
-  { name: "Marcus Bello", role: "Head of Partnerships", initials: "MB" },
-  { name: "Zara Khan", role: "Lead AI Engineer", initials: "ZK" },
+  { name: "Victory Asaboro", role: "Lead Designer · IDAN Member", initials: "VA" },
+  { name: "Joy", role: "Interior Designer · MSc Interior Design", initials: "J", image: "/coporate/joy.png" },
 ];
 
 export default function AboutPage() {
@@ -49,7 +50,7 @@ export default function AboutPage() {
             </p>
             <p className="text-muted-foreground">
               Today the platform serves homeowners, developers, hospitality groups and institutions
-              across multiple countries, adjusting pricing to each region and learning from every
+              across Nigeria, adjusting pricing to each region and learning from every
               completed project.
             </p>
           </div>
@@ -99,12 +100,54 @@ export default function AboutPage() {
                       <Image src={m.image} alt={m.name} fill sizes="80px" className="object-cover" />
                     </span>
                   ) : (
-                    <span className="grid size-20 place-items-center rounded-2xl bg-gradient-to-br from-primary/20 to-accent font-display text-xl font-bold text-primary">
+                    <span className="grid size-20 place-items-center rounded-2xl bg-linear-to-br from-primary/20 to-accent font-display text-xl font-bold text-primary">
                       {m.initials}
                     </span>
                   )}
                   <h3 className="mt-4 font-semibold">{m.name}</h3>
                   <p className="text-sm text-muted-foreground">{m.role}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </Container>
+      </Section>
+
+      <Section id="careers">
+        <Container className="max-w-3xl text-center">
+          <SectionHeading
+            eyebrow="Careers"
+            title="Help build the future of interior design"
+            description="We're a small team with big ambitions across design, engineering and operations. If you care about craft, AI or beautiful spaces, we'd love to hear from you."
+          />
+          <Button asChild className="mt-8">
+            <a href={`mailto:${site.email}?subject=Careers at TOBEEZ`}>
+              <Mail /> Send us your CV
+            </a>
+          </Button>
+        </Container>
+      </Section>
+
+      <Section className="bg-muted/30" id="contact">
+        <Container className="max-w-4xl">
+          <SectionHeading eyebrow="Contact" title="Talk to the TOBEEZ team" />
+          <div className="mt-12 grid gap-4 sm:grid-cols-3">
+            {[
+              { Icon: Mail, label: "Email", value: site.email, href: `mailto:${site.email}` },
+              { Icon: Phone, label: "Phone", value: site.phone, href: `tel:${site.phone.replace(/\s/g, "")}` },
+              { Icon: MapPin, label: "Address", value: site.address },
+            ].map((c) => (
+              <Card key={c.label}>
+                <CardContent className="p-6 text-center">
+                  <div className="mx-auto mb-3 grid size-12 place-items-center rounded-xl bg-primary/10 text-primary">
+                    <c.Icon className="size-5" />
+                  </div>
+                  <h3 className="font-semibold">{c.label}</h3>
+                  {c.href ? (
+                    <a href={c.href} className="mt-1 block text-sm text-muted-foreground transition-colors hover:text-primary">{c.value}</a>
+                  ) : (
+                    <p className="mt-1 text-sm text-muted-foreground">{c.value}</p>
+                  )}
                 </CardContent>
               </Card>
             ))}

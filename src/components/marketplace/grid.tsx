@@ -53,8 +53,10 @@ export function MarketplaceGrid({ products = PRODUCTS }: { products?: Product[] 
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border py-20 text-center text-muted-foreground">
-          No products match your search.
+        <div className="rounded-2xl border border-dashed border-border px-6 py-20 text-center text-muted-foreground">
+          {products.length === 0
+            ? "Our curated catalogue is being restocked with new pieces. Check back soon — or start a free AI estimate in the meantime."
+            : "No products match your search."}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

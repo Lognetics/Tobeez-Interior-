@@ -53,7 +53,11 @@ export function AuthForm({
         : await supabase.auth.signUp({
             email,
             password,
-            options: { data: { full_name: name } },
+            options: {
+              data: { full_name: name },
+              // The confirmation email's link lands back in the app, signed in.
+              emailRedirectTo: `${window.location.origin}/login?next=${encodeURIComponent(nextPath)}`,
+            },
           });
 
       if (result.error) throw result.error;

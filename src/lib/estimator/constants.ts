@@ -77,16 +77,21 @@ export const TIMELINES = [
   "Immediately", "30 Days", "60 Days", "90 Days", "6 Months", "1 Year", "Flexible",
 ] as const;
 
+/**
+ * Ranged add-ons: real cost depends heavily on spec, so each shows min–max.
+ * Ranges trimmed per client feedback (July 2026) — final calibration pending
+ * their supplier price list.
+ */
 export const SPECIAL_FEATURES = [
-  { id: "smart-home", label: "Smart Home", cost: 2500000 },
-  { id: "voice", label: "Voice Control", cost: 800000 },
-  { id: "solar", label: "Solar & Inverter", cost: 6500000 },
-  { id: "security", label: "Security System", cost: 1800000 },
-  { id: "automation", label: "Automation", cost: 3200000 },
-  { id: "cinema", label: "Home Cinema", cost: 4500000 },
-  { id: "gaming", label: "Gaming Room", cost: 2200000 },
-  { id: "acoustics", label: "Acoustic Treatment", cost: 1500000 },
-  { id: "lighting", label: "Luxury Lighting", cost: 2800000 },
+  { id: "smart-home", label: "Smart Home", costMin: 800000, costMax: 2000000 },
+  { id: "voice", label: "Voice Control", costMin: 250000, costMax: 700000 },
+  { id: "solar", label: "Solar & Inverter", costMin: 2500000, costMax: 6500000 },
+  { id: "security", label: "Security System", costMin: 600000, costMax: 1800000 },
+  { id: "automation", label: "Automation", costMin: 1200000, costMax: 3000000 },
+  { id: "cinema", label: "Home Cinema", costMin: 1800000, costMax: 4500000 },
+  { id: "gaming", label: "Gaming Room", costMin: 900000, costMax: 2200000 },
+  { id: "acoustics", label: "Acoustic Treatment", costMin: 600000, costMax: 1500000 },
+  { id: "lighting", label: "Luxury Lighting", costMin: 800000, costMax: 2400000 },
 ] as const;
 
 /** Regional cost-of-living multipliers (stub, replace with live price index). */
@@ -123,7 +128,7 @@ export const LUXURY_LEVELS = ["Comfort", "Premium", "High-end", "Ultra luxury"] 
 
 export const MAINTENANCE = ["Low maintenance", "Balanced", "Not a concern"] as const;
 
-export const FINANCING = ["Pay upfront", "Installments", "Financing needed", "Not sure yet"] as const;
+export const FINANCING = ["Pay upfront", "Installments", "Not sure yet"] as const;
 
 export type PropertyCategory = (typeof PROPERTY_CATEGORIES)[number]["id"];
 export type ProjectStage = (typeof PROJECT_STAGES)[number]["id"];

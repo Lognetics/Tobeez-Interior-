@@ -7,9 +7,9 @@ import { Container, Section, SectionHeading } from "@/components/ui/container";
 
 const faqs = [
   { q: "How accurate are the AI estimates?", a: "Estimates are region-adjusted and itemised across furniture, finishes, labour, tax and contingency. Real projects typically land within the min–max range provided. Accuracy improves as you add detail in the wizard." },
-  { q: "Do I need to pay to get an estimate?", a: "No. The AI Cost Estimator is free to use, no card required. You only pay for consultations, products or premium plans." },
+  { q: "Do I need to pay to get an estimate?", a: "Running the estimator wizard is free. To view your total estimate and the complete itemised breakdown, you pay a small one-time unlock fee — that is what the premium plan covers." },
   { q: "What kinds of properties are supported?", a: "Everything from studios and duplexes to hotels, offices, hospitals, schools, event centres and industrial facilities." },
-  { q: "Can I work with a real interior designer?", a: "Yes. Book virtual, phone or in-person consultations with vetted experts, share moodboards, and collaborate in real time." },
+  { q: "Can I work with a real interior designer?", a: "Yes. Book a video or phone consultation with a vetted expert for ₦100,000, or an in-person session for ₦150,000. Share moodboards and collaborate in real time." },
   { q: "Which currencies and regions are supported?", a: "The platform is multi-currency and multi-region, with pricing adjusted by a regional cost index. More regions are added continuously." },
 ];
 

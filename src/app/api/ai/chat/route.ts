@@ -135,7 +135,10 @@ export async function POST(req: Request) {
   };
 
   try {
-    const generatedText = await chatComplete([groundingMessage, ...messages]);
+    // Private workspace records must never fall back to keyless inference.
+    const generatedText = await chatComplete([groundingMessage, ...messages], {
+      allowKeylessFallback: !modelUserContext,
+    });
     const text = sources.length || modelUserContext ? stripUnverifiedLinks(generatedText) : generatedText;
     return Response.json({
       text,
