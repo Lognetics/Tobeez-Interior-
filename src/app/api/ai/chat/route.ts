@@ -7,7 +7,7 @@ import {
 } from "@/lib/ai/knowledge";
 import { getConsultants, getProducts } from "@/lib/data/catalog";
 import type { Product } from "@/lib/data/products";
-import { authenticateApiRequest, authenticationRequired } from "@/lib/auth/api-auth";
+import { authenticateApiRequest } from "@/lib/auth/api-auth";
 import { getAuthenticatedUserContext } from "@/lib/ai/user-context";
 
 export const runtime = "nodejs";
@@ -72,9 +72,39 @@ function privateRecordAnswer(query: string, context: string) {
     : "I could not find any matching saved records in your TOBEEZ workspace.";
 }
 
+/**
+ * The public site assistant allows anonymous chat. This per-instance token
+ * bucket keeps a stranger from hammering the endpoint and burning provider
+ * credit (Fluid Compute reuses instances, so the bucket has real teeth even
+ * though it is not a distributed limiter). Signed-in users are not limited.
+ */
+const anonBuckets = new Map<string, { count: number; reset: number }>();
+function anonymousRateLimited(req: Request) {
+  const ip = (req.headers.get("x-forwarded-for") ?? "unknown").split(",")[0].trim();
+  const now = Date.now();
+  if (anonBuckets.size > 2000) {
+    for (const [key, bucket] of anonBuckets) {
+      if (bucket.reset < now) anonBuckets.delete(key);
+    }
+  }
+  const bucket = anonBuckets.get(ip);
+  if (!bucket || bucket.reset < now) {
+    anonBuckets.set(ip, { count: 1, reset: now + 60_000 });
+    return false;
+  }
+  bucket.count += 1;
+  return bucket.count > 8;
+}
+
 export async function POST(req: Request) {
+  // Anonymous visitors may chat; private workspace context requires sign-in.
   const identity = await authenticateApiRequest(req);
-  if (!identity) return authenticationRequired();
+  if (!identity && anonymousRateLimited(req)) {
+    return Response.json(
+      { error: "You're sending messages quickly — give it a minute and try again.", code: "RATE_LIMITED" },
+      { status: 429 },
+    );
+  }
 
   let messages: AIMessage[];
   let mode: "chat" | "image" | "video";
@@ -94,7 +124,7 @@ export async function POST(req: Request) {
   const [{ products }, designers, userContext] = await Promise.all([
     getProducts(),
     getConsultants(),
-    getAuthenticatedUserContext(identity.id, identity.accessToken),
+    identity ? getAuthenticatedUserContext(identity.id, identity.accessToken) : Promise.resolve(""),
   ]);
   const retrieval = retrievePlatformKnowledge(latestUserMessage.content, { products, designers });
   const provider = activeProvider();

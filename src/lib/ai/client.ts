@@ -54,6 +54,19 @@ async function authenticatedFetch(input: RequestInfo | URL, init: RequestInit = 
   return fetch(input, { ...init, headers });
 }
 
+/** Attaches the session token when one exists; anonymous otherwise. Chat is public. */
+async function optionalAuthFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+  const headers = new Headers(init.headers);
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (token) headers.set("authorization", `Bearer ${token}`);
+  } catch {
+    // Anonymous is fine for the public assistant.
+  }
+  return fetch(input, { ...init, headers });
+}
+
 async function responseError(response: Response) {
   let payload: { error?: string; code?: string } = {};
   try {
@@ -81,7 +94,7 @@ export async function sendChat(
   fallback: boolean;
   products: RecommendedProduct[];
 }> {
-  const res = await authenticatedFetch("/api/ai/chat", {
+  const res = await optionalAuthFetch("/api/ai/chat", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({

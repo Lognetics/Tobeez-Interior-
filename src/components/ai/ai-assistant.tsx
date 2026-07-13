@@ -3,11 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpRight, Bot, Loader2, LockKeyhole, Send, Sparkles, X } from "lucide-react";
+import { ArrowUpRight, Bot, Send, Sparkles, X } from "lucide-react";
 import { Markdown } from "@/components/ui/markdown";
 import { cn } from "@/lib/utils";
 import { AIClientError, sendChat, type ChatMessage, type ChatSource } from "@/lib/ai/client";
-import { useSession } from "@/lib/session";
 
 const SUGGESTIONS = [
   "How much to furnish a 3-bedroom?",
@@ -26,8 +25,6 @@ export function AIAssistant() {
   const [input, setInput] = React.useState("");
   const [pending, setPending] = React.useState(false);
   const [messages, setMessages] = React.useState<ChatMessage[]>([WELCOME_MESSAGE]);
-  const user = useSession((state) => state.user);
-  const authReady = useSession((state) => state.authReady);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const hasUserMessage = messages.some((message) => message.role === "user");
@@ -54,7 +51,7 @@ export function AIAssistant() {
 
   async function send(text: string) {
     const content = text.trim();
-    if (!content || pending || !user) return;
+    if (!content || pending) return;
 
     const next: ChatMessage[] = [...messages, { role: "user", content }];
     setMessages(next);
@@ -76,8 +73,8 @@ export function AIAssistant() {
         ...next,
         {
           role: "assistant",
-          content: error instanceof AIClientError && error.code === "AUTH_REQUIRED"
-            ? "Your session has expired. Please sign in again to continue."
+          content: error instanceof AIClientError && error.code === "RATE_LIMITED"
+            ? error.message
             : "I'm having trouble connecting right now. Please try again in a moment.",
         },
       ]);
@@ -127,24 +124,7 @@ export function AIAssistant() {
               ref={scrollRef}
               className="flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4 [scrollbar-color:#43362f_transparent] [scrollbar-width:thin]"
             >
-              {!authReady ? (
-                <div className="grid h-full place-items-center">
-                  <Loader2 className="size-6 animate-spin text-[#ff923f]" aria-label="Checking session" />
-                </div>
-              ) : !user ? (
-                <div className="flex h-full flex-col items-center justify-center px-5 text-center">
-                  <span className="grid size-12 place-items-center rounded-full bg-[#29241f] text-[#ff923f]">
-                    <LockKeyhole className="size-5" />
-                  </span>
-                  <h3 className="mt-4 text-[16px] font-semibold">Sign in to chat</h3>
-                  <p className="mt-2 text-[12px] leading-5 text-[#a69d96]">
-                    Your TOBEEZ workspace, saved projects, and generation history stay private to your account.
-                  </p>
-                  <Link href="/login?next=/" className="mt-5 rounded-full bg-[#ff923f] px-5 py-2.5 text-[12px] font-semibold text-[#24150d] transition-colors hover:bg-[#ffa45f]">
-                    Sign in to continue
-                  </Link>
-                </div>
-              ) : messages.map((message, index) => (
+              {messages.map((message, index) => (
                 <div
                   key={`${message.role}-${index}`}
                   className={cn(
@@ -167,7 +147,7 @@ export function AIAssistant() {
                 </div>
               ))}
 
-              {user && pending && (
+              {pending && (
                 <div
                   aria-label="TOBEEZ AI is thinking"
                   aria-live="polite"
@@ -179,7 +159,7 @@ export function AIAssistant() {
                 </div>
               )}
 
-              {user && !hasUserMessage && (
+              {!hasUserMessage && (
                 <div className="flex flex-col items-start gap-2 pt-1">
                   {SUGGESTIONS.map((suggestion) => (
                     <button
@@ -196,7 +176,7 @@ export function AIAssistant() {
               )}
             </div>
 
-            {user && <form
+            <form
               onSubmit={(event) => {
                 event.preventDefault();
                 send(input);
@@ -224,7 +204,7 @@ export function AIAssistant() {
               >
                 <Send className="size-[17px]" />
               </button>
-            </form>}
+            </form>
           </motion.section>
         )}
       </AnimatePresence>
