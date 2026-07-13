@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import * as Icons from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, Search, X } from "lucide-react";
@@ -12,6 +12,7 @@ import { NotificationBell } from "@/components/dashboard/notification-bell";
 import { Button } from "@/components/ui/button";
 import type { DashNavItem } from "@/lib/dashboard-nav";
 import { useSession } from "@/lib/session";
+import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 export function DashboardShell({
@@ -26,10 +27,25 @@ export function DashboardShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [signingOut, setSigningOut] = React.useState(false);
   const sessionUser = useSession((s) => s.user);
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // Even if the network call fails, clear the local session below.
+    }
+    // Clears the mirrored session and the auth cookie before navigating,
+    // so the proxy doesn't bounce the next protected visit incorrectly.
+    useSession.getState().signOut();
+    router.replace("/");
+  }
 
   // On the client dashboard, reflect the actually signed-in user.
   const display =
@@ -68,10 +84,19 @@ export function DashboardShell({
         <div className="border-t border-border p-3">
           <div className="flex items-center gap-3 rounded-xl px-3 py-2">
             <span className="grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{display.initials}</span>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{display.name}</p>
               <p className="text-xs capitalize text-muted-foreground">{role}</p>
             </div>
+            <button
+              onClick={handleSignOut}
+              disabled={signingOut}
+              aria-label="Sign out"
+              title="Sign out"
+              className="grid size-9 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+            >
+              {signingOut ? <Icons.Loader2 className="size-4 animate-spin" /> : <Icons.LogOut className="size-4" />}
+            </button>
           </div>
         </div>
       </aside>
@@ -90,6 +115,16 @@ export function DashboardShell({
                 <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)}><X /></Button>
               </div>
               <div className="flex-1 overflow-y-auto p-3" onClick={() => setMobileOpen(false)}>{NavLinks}</div>
+              <div className="border-t border-border p-3">
+                <button
+                  onClick={handleSignOut}
+                  disabled={signingOut}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+                >
+                  {signingOut ? <Icons.Loader2 className="size-4.5 animate-spin" /> : <Icons.LogOut className="size-4.5" />}
+                  Sign out
+                </button>
+              </div>
             </motion.aside>
           </>
         )}
