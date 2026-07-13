@@ -18,11 +18,17 @@ function mirrorAuthUser(user: User | null) {
   const metadataName = typeof user.user_metadata?.full_name === "string"
     ? user.user_metadata.full_name.trim()
     : "";
+  // OAuth providers supply a profile photo (Google: avatar_url/picture).
+  const avatarUrl = typeof user.user_metadata?.avatar_url === "string"
+    ? user.user_metadata.avatar_url
+    : typeof user.user_metadata?.picture === "string"
+      ? user.user_metadata.picture
+      : undefined;
   const email = user.email ?? "";
   const fallbackName = email
     ? email.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
     : "TOBEEZ member";
-  session.signIn({ name: metadataName || fallbackName, email });
+  session.signIn({ name: metadataName || fallbackName, email, avatarUrl });
   session.setAuthReady(true);
 }
 

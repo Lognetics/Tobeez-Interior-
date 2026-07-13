@@ -13,6 +13,7 @@ export type SessionUser = {
   email: string;
   role: "client" | "consultant" | "vendor" | "admin";
   initials: string;
+  avatarUrl?: string; // profile photo from OAuth providers (Google, Apple, …)
   phone?: string;
   location?: string;
 };

@@ -15,6 +15,26 @@ import { useSession } from "@/lib/session";
 import { supabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
+/** Profile photo from an OAuth provider when available, initials otherwise. */
+function AvatarBadge({ name, initials, avatarUrl }: { name: string; initials: string; avatarUrl?: string }) {
+  const [broken, setBroken] = React.useState(false);
+  if (avatarUrl && !broken) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={avatarUrl}
+        alt={name}
+        referrerPolicy="no-referrer"
+        onError={() => setBroken(true)}
+        className="size-9 rounded-full object-cover"
+      />
+    );
+  }
+  return (
+    <span className="grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{initials}</span>
+  );
+}
+
 export function DashboardShell({
   nav,
   role,
@@ -61,8 +81,8 @@ export function DashboardShell({
   // On the client dashboard, reflect the actually signed-in user.
   const display =
     mounted && role.toLowerCase() === "client" && sessionUser
-      ? { name: sessionUser.name, initials: sessionUser.initials }
-      : user;
+      ? { name: sessionUser.name, initials: sessionUser.initials, avatarUrl: sessionUser.avatarUrl }
+      : { ...user, avatarUrl: undefined as string | undefined };
 
   const NavLinks = (
     <nav className="space-y-1">
@@ -94,7 +114,7 @@ export function DashboardShell({
         <div className="flex-1 overflow-y-auto p-3">{NavLinks}</div>
         <div className="border-t border-border p-3">
           <div className="flex items-center gap-3 rounded-xl px-3 py-2">
-            <span className="grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{display.initials}</span>
+            <AvatarBadge name={display.name} initials={display.initials} avatarUrl={display.avatarUrl} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{display.name}</p>
               <p className="text-xs capitalize text-muted-foreground">{role}</p>
@@ -157,9 +177,9 @@ export function DashboardShell({
                 onClick={() => setMenuOpen((value) => !value)}
                 aria-label="Account menu"
                 aria-expanded={menuOpen}
-                className="grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary transition-shadow hover:ring-2 hover:ring-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="rounded-full transition-shadow hover:ring-2 hover:ring-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {display.initials}
+                <AvatarBadge name={display.name} initials={display.initials} avatarUrl={display.avatarUrl} />
               </button>
               {menuOpen && (
                 <>
