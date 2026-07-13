@@ -43,7 +43,8 @@ const team: { name: string; role: string; initials: string; image?: string; bio?
     role: designer.title,
     initials: designer.initials,
     image: designer.photo,
-    bio: designer.bio,
+    // Victory's card stays lean until her details are confirmed.
+    bio: designer.id === "d1" ? undefined : designer.bio,
     chips: [`${designer.experienceYears}+ years experience`, ...designer.certifications],
   })),
 ];
