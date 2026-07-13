@@ -28,7 +28,10 @@ function mirrorAuthUser(user: User | null) {
   const fallbackName = email
     ? email.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
     : "TOBEEZ member";
-  session.signIn({ name: metadataName || fallbackName, email, avatarUrl });
+  // Profile fields saved from Settings live in user_metadata too.
+  const phone = typeof user.user_metadata?.phone === "string" ? user.user_metadata.phone : undefined;
+  const location = typeof user.user_metadata?.location === "string" ? user.user_metadata.location : undefined;
+  session.signIn({ name: metadataName || fallbackName, email, avatarUrl, phone, location });
   session.setAuthReady(true);
 }
 

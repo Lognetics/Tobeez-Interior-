@@ -30,12 +30,42 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
 
   const [form, setForm] = React.useState({ name: user?.name ?? "", email: user?.email ?? "", phone: user?.phone ?? "", location: user?.location ?? "" });
+  const [dirty, setDirty] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
+  const [error, setError] = React.useState("");
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
-  function saveProfile() {
-    updateProfile(form);
+  // The session hydrates after mount; fill the form once it arrives (and
+  // whenever it changes) unless the user is mid-edit.
+  React.useEffect(() => {
+    if (user && !dirty) {
+      setForm({ name: user.name, email: user.email, phone: user.phone ?? "", location: user.location ?? "" });
+    }
+  }, [user, dirty]);
+
+  function setField(patch: Partial<typeof form>) {
+    setDirty(true);
+    setForm((current) => ({ ...current, ...patch }));
+  }
+
+  async function saveProfile() {
+    setSaving(true);
+    setError("");
+    // Persist to the Supabase account (user metadata) so the profile survives
+    // refreshes and follows the user across devices — the local store alone
+    // gets overwritten by the auth mirror on every page load.
+    const { error: updateError } = await supabase.auth.updateUser({
+      data: { full_name: form.name.trim(), phone: form.phone.trim(), location: form.location.trim() },
+    });
+    setSaving(false);
+    if (updateError) {
+      setError(updateError.message || "Could not save your profile. Please try again.");
+      return;
+    }
+    updateProfile({ name: form.name.trim(), phone: form.phone.trim(), location: form.location.trim() });
+    setDirty(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
   }
@@ -50,13 +80,20 @@ export default function SettingsPage() {
           <CardContent className="p-6">
             <h2 className="mb-4 font-display font-semibold">Profile</h2>
             <div className="space-y-4">
-              <div className="space-y-2"><Label htmlFor="name">Full name</Label><Input id="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-              <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2"><Label htmlFor="phone">Phone</Label><Input id="phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+234…" /></div>
-                <div className="space-y-2"><Label htmlFor="loc">Location</Label><Input id="loc" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Lagos, NG" /></div>
+              <div className="space-y-2"><Label htmlFor="name">Full name</Label><Input id="name" value={form.name} onChange={(e) => setField({ name: e.target.value })} /></div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" value={form.email} disabled readOnly className="opacity-70" />
+                <p className="text-xs text-muted-foreground">Your email is your sign-in identity and can't be changed here.</p>
               </div>
-              <Button onClick={saveProfile}>{saved ? <><Check /> Saved</> : "Save changes"}</Button>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2"><Label htmlFor="phone">Phone</Label><Input id="phone" value={form.phone} onChange={(e) => setField({ phone: e.target.value })} placeholder="+234…" /></div>
+                <div className="space-y-2"><Label htmlFor="loc">Location</Label><Input id="loc" value={form.location} onChange={(e) => setField({ location: e.target.value })} placeholder="Lagos, NG" /></div>
+              </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              <Button onClick={saveProfile} disabled={saving}>
+                {saving ? "Saving…" : saved ? <><Check /> Saved</> : "Save changes"}
+              </Button>
             </div>
           </CardContent>
         </Card>
