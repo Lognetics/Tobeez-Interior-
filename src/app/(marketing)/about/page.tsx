@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { Award, Heart, Leaf, Mail, MapPin, Phone, Target, Users, Zap } from "lucide-react";
+import Link from "next/link";
 import { ABOUT_COLLAGE, FOUNDER_IMAGE } from "@/lib/gallery";
+import { DESIGNERS } from "@/lib/data/designers";
 import { site } from "@/lib/site";
 import { PageHero } from "@/components/layout/page-hero";
 import { Container, Section, SectionHeading } from "@/components/ui/container";
@@ -23,10 +25,27 @@ const values = [
   { Icon: Award, title: "Excellence", body: "An award-worthy standard across every project we touch." },
 ];
 
-const team: { name: string; role: string; initials: string; image?: string }[] = [
-  { name: "Founder & CEO", role: "TOBEEZ Interiors", initials: "TI", image: FOUNDER_IMAGE },
-  { name: "Victory Asaboro", role: "Lead Designer · IDAN Member", initials: "VA" },
-  { name: "Joy", role: "Interior Designer · MSc Interior Design", initials: "J", image: "/coporate/joy.png" },
+/**
+ * Team cards: the founder, plus every consultant from the live designer
+ * roster (designers.ts), so bios and credentials shown here always match
+ * the consultation booking flow.
+ */
+const team: { name: string; role: string; initials: string; image?: string; bio?: string; chips?: string[] }[] = [
+  {
+    name: "Founder & CEO",
+    role: "TOBEEZ Interiors",
+    initials: "TI",
+    image: FOUNDER_IMAGE,
+    bio: "Leads TOBEEZ's mission to make designer-grade interiors accessible to everyone through AI, expert consultations and honest pricing.",
+  },
+  ...DESIGNERS.map((designer) => ({
+    name: designer.name,
+    role: designer.title,
+    initials: designer.initials,
+    image: designer.photo,
+    bio: designer.bio,
+    chips: [`${designer.experienceYears}+ years experience`, ...designer.certifications],
+  })),
 ];
 
 export default function AboutPage() {
@@ -91,10 +110,10 @@ export default function AboutPage() {
       <Section className="bg-muted/30" id="team">
         <Container>
           <SectionHeading eyebrow="Meet the team" title="The people behind TOBEEZ" />
-          <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {team.map((m) => (
               <Card key={m.name}>
-                <CardContent className="flex flex-col items-center p-6 text-center">
+                <CardContent className="flex h-full flex-col items-center p-6 text-center">
                   {m.image ? (
                     <span className="relative size-20 overflow-hidden rounded-2xl">
                       <Image src={m.image} alt={m.name} fill sizes="80px" className="object-cover" />
@@ -106,6 +125,21 @@ export default function AboutPage() {
                   )}
                   <h3 className="mt-4 font-semibold">{m.name}</h3>
                   <p className="text-sm text-muted-foreground">{m.role}</p>
+                  {m.chips && m.chips.length > 0 && (
+                    <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+                      {m.chips.map((chip) => (
+                        <span key={chip} className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
+                          {chip}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {m.bio && <p className="mt-4 text-left text-sm leading-6 text-muted-foreground">{m.bio}</p>}
+                  {m.chips && (
+                    <Link href="/consultation" className="mt-auto pt-4 text-sm font-medium text-primary hover:underline">
+                      Book a session with {m.name.split(" ")[0]} →
+                    </Link>
+                  )}
                 </CardContent>
               </Card>
             ))}
