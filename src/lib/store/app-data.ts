@@ -54,7 +54,13 @@ export type Invoice = {
 export type SavedDesign = { id: string; prompt: string; src: string; createdAt: number };
 
 /** Studio Pro subscription (₦43,000 / 30 days) — unlocks image & video generation. */
-export type StudioProSub = { ref: string; activatedAt: number; expiresAt: number };
+export type StudioProSub = {
+  ref: string; activatedAt: number; expiresAt: number;
+  imagesUsed: number; videosUsed: number;
+};
+
+/** Per-cycle generation quotas included in Studio Pro. */
+export const STUDIO_PRO_LIMITS = { image: 20, video: 5 } as const;
 
 let counter = 1;
 const uid = (p: string) => `${p}_${Date.now().toString(36)}_${counter++}`;
@@ -83,6 +89,7 @@ type AppState = {
   addInvoice: (i: Omit<Invoice, "id" | "createdAt" | "number" | "status"> & { status?: Invoice["status"] }) => Invoice;
   saveDesign: (d: { prompt: string; src: string }) => void;
   activateStudioPro: (ref: string) => void;
+  recordStudioGeneration: (kind: "image" | "video") => void;
   unreadCount: () => number;
   clearAll: () => void;
 };
@@ -139,7 +146,22 @@ export const useAppData = create<AppState>()(
       },
       saveDesign: (d) => set((s) => ({ savedDesigns: [{ ...d, id: uid("dsn"), createdAt: Date.now() }, ...s.savedDesigns] })),
       activateStudioPro: (ref) =>
-        set({ studioPro: { ref, activatedAt: Date.now(), expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000 } }),
+        set({
+          studioPro: {
+            ref, activatedAt: Date.now(), expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+            imagesUsed: 0, videosUsed: 0,
+          },
+        }),
+      recordStudioGeneration: (kind) =>
+        set((s) => s.studioPro
+          ? {
+              studioPro: {
+                ...s.studioPro,
+                imagesUsed: (s.studioPro.imagesUsed ?? 0) + (kind === "image" ? 1 : 0),
+                videosUsed: (s.studioPro.videosUsed ?? 0) + (kind === "video" ? 1 : 0),
+              },
+            }
+          : s),
       unreadCount: () => get().notifications.filter((n) => !n.read).length,
       clearAll: () => set({ bookings: [], notifications: [], conversations: [], orders: [], projects: [], estimates: [], invoices: [], savedDesigns: [], studioPro: null }),
     }),

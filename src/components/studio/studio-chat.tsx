@@ -36,7 +36,7 @@ import {
 import { PRODUCT_IMAGES } from "@/lib/gallery";
 import { PRODUCTS } from "@/lib/data/products";
 import { payWithPaystack, verifyPayment } from "@/lib/paystack";
-import { useAppData } from "@/lib/store/app-data";
+import { STUDIO_PRO_LIMITS, useAppData } from "@/lib/store/app-data";
 import { useCart } from "@/lib/store/cart-store";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useSession } from "@/lib/session";
@@ -212,9 +212,9 @@ function StudioProGate({ mode }: { mode: Mode }) {
 
         <ul className="mx-auto mt-6 max-w-xs space-y-2.5 text-left">
           {[
-            "Photorealistic interior renders in seconds",
+            `${STUDIO_PRO_LIMITS.image} photorealistic image renders per month`,
             "Redesign your own room from a photo",
-            "Cinematic video walkthroughs with audio",
+            `${STUDIO_PRO_LIMITS.video} cinematic video walkthroughs per month`,
             "Save every design to your dashboard",
           ].map((benefit) => (
             <li key={benefit} className="flex items-start gap-2.5 text-sm">
@@ -299,6 +299,10 @@ function ChatThread({ conversationId, mode, setMode, proActive }: { conversation
   const [input, setInput] = React.useState("");
   const [attachments, setAttachments] = React.useState<StudioAttachment[]>([]);
   const [busy, setBusy] = React.useState(false);
+  const studioPro = useAppData((s) => s.studioPro);
+  const recordStudioGeneration = useAppData((s) => s.recordStudioGeneration);
+  const imagesLeft = Math.max(0, STUDIO_PRO_LIMITS.image - (studioPro?.imagesUsed ?? 0));
+  const videosLeft = Math.max(0, STUDIO_PRO_LIMITS.video - (studioPro?.videosUsed ?? 0));
   const [visual, setVisual] = React.useState<{ id: string; kind: "image" | "video"; error: string } | null>(null);
   const [lightbox, setLightbox] = React.useState<LightboxMedia | null>(null);
   const [dragging, setDragging] = React.useState(false);
@@ -350,9 +354,13 @@ function ChatThread({ conversationId, mode, setMode, proActive }: { conversation
       }));
 
     const editIntent = userAttachments.some((a) => a.kind === "image") && /redesign|edit|change|make|convert|style|improve/i.test(text);
-    // Generation is a Studio Pro feature — without it, chat replies stay text-only.
-    const shouldImage = proActive && (mode === "image" || (mode === "chat" && (wantsImage(text) || editIntent)));
-    const shouldVideo = proActive && mode === "video";
+    // Generation is a Studio Pro feature with per-cycle quotas — outside the
+    // plan or over quota, replies stay text-only and the card explains why.
+    const wantsImageNow = mode === "image" || (mode === "chat" && (wantsImage(text) || editIntent));
+    const imageBlocked = wantsImageNow && proActive && imagesLeft <= 0;
+    const videoBlocked = mode === "video" && proActive && videosLeft <= 0;
+    const shouldImage = proActive && wantsImageNow && imagesLeft > 0;
+    const shouldVideo = proActive && mode === "video" && videosLeft > 0;
 
     try {
       // Kick off the visual immediately — a high-quality render takes 60–120s,
@@ -365,6 +373,15 @@ function ChatThread({ conversationId, mode, setMode, proActive }: { conversation
       const referenceImage = attachedImage ?? (shouldVideo ? latestConversationImage(convId) : undefined);
       let visualTask: Promise<void> | null = null;
       setVisual(null);
+      if (videoBlocked || imageBlocked) {
+        setVisual({
+          id: assistantId,
+          kind: videoBlocked ? "video" : "image",
+          error: videoBlocked
+            ? `You've used all ${STUDIO_PRO_LIMITS.video} video generations in this billing cycle. Your quota resets when the subscription renews.`
+            : `You've used all ${STUDIO_PRO_LIMITS.image} image renders in this billing cycle. Your quota resets when the subscription renews.`,
+        });
+      }
       if (shouldVideo) {
         setVisual({ id: assistantId, kind: "video", error: "" });
         visualTask = generateVideoJob({ prompt: visualPrompt, aspect: "landscape", referenceImage })
@@ -379,11 +396,12 @@ function ChatThread({ conversationId, mode, setMode, proActive }: { conversation
                 status: video.status,
               },
             });
+            recordStudioGeneration("video");
             setVisual(null);
           })
           .catch((videoError) => {
-            const message = videoError instanceof Error ? videoError.message : "Video generation failed.";
-            setVisual({ id: assistantId, kind: "video", error: message });
+            const message = videoError instanceof Error ? videoError.message : "The video provider was unavailable.";
+            setVisual({ id: assistantId, kind: "video", error: `Video generation failed: ${message}` });
           });
       } else if (shouldImage) {
         setVisual({ id: assistantId, kind: "image", error: "" });
@@ -398,11 +416,12 @@ function ChatThread({ conversationId, mode, setMode, proActive }: { conversation
                 grounded: image.grounded,
               }],
             });
+            recordStudioGeneration("image");
             setVisual(null);
           })
           .catch((imageError) => {
-            const message = imageError instanceof Error ? imageError.message : "Image generation failed.";
-            setVisual({ id: assistantId, kind: "image", error: message });
+            const message = imageError instanceof Error ? imageError.message : "The image provider was unavailable.";
+            setVisual({ id: assistantId, kind: "image", error: `Image generation failed: ${message}` });
           });
       }
 
@@ -543,10 +562,7 @@ function ChatThread({ conversationId, mode, setMode, proActive }: { conversation
                     <div className="mt-3 sm:max-w-2xl">
                       <div className="grid aspect-video place-items-center rounded-2xl border border-border bg-muted p-6">
                         {visual.error ? (
-                          <p className="text-center text-sm text-destructive">
-                            {visual.kind === "video" ? "Video generation failed: " : "Image generation failed: "}
-                            {visual.error}
-                          </p>
+                          <p className="text-center text-sm text-destructive">{visual.error}</p>
                         ) : (
                           <div className="flex flex-col items-center gap-2 text-center text-muted-foreground">
                             <Loader2 className="size-6 animate-spin" />
@@ -626,8 +642,10 @@ function ChatThread({ conversationId, mode, setMode, proActive }: { conversation
           </div>
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
             {mode === "video"
-              ? "Real Veo video generation can take one to three minutes. Keep this page open while it renders."
-              : "TOBEEZ AI grounds responses and visuals in your workspace and verified platform records."}
+              ? `Veo renders take one to three minutes — keep this page open. ${videosLeft} of ${STUDIO_PRO_LIMITS.video} videos left this cycle.`
+              : mode === "image"
+                ? `${imagesLeft} of ${STUDIO_PRO_LIMITS.image} image renders left this cycle.`
+                : "TOBEEZ AI grounds responses and visuals in your workspace and verified platform records."}
           </p>
         </div>
       </div>
