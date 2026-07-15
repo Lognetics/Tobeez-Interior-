@@ -35,8 +35,7 @@ const team = DESIGNERS.map((designer) => ({
   role: designer.title,
   initials: designer.initials,
   image: designer.photo,
-  // Victory's card stays lean until her photo and details are confirmed.
-  bio: designer.id === "d1" ? undefined : designer.bio,
+  bio: designer.bio,
   chips: [`${designer.experienceYears}+ years experience`, ...designer.certifications],
 }));
 
