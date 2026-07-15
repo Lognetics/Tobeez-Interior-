@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { Award, Heart, Leaf, Mail, MapPin, Phone, Target, Users, Zap } from "lucide-react";
 import Link from "next/link";
-import { ABOUT_COLLAGE, FOUNDER_IMAGE } from "@/lib/gallery";
+import { ABOUT_COLLAGE } from "@/lib/gallery";
 import { DESIGNERS } from "@/lib/data/designers";
 import { site } from "@/lib/site";
 import { PageHero } from "@/components/layout/page-hero";
@@ -26,28 +26,19 @@ const values = [
 ];
 
 /**
- * Team cards: the founder, plus every consultant from the live designer
- * roster (designers.ts), so bios and credentials shown here always match
- * the consultation booking flow.
+ * The team is the designer roster (designers.ts) — Victory is both founder
+ * and lead designer, so there is no separate founder card. Sourcing from one
+ * place keeps these cards in step with the consultation booking flow.
  */
-const team: { name: string; role: string; initials: string; image?: string; bio?: string; chips?: string[] }[] = [
-  {
-    name: "Founder & CEO",
-    role: "TOBEEZ Interiors",
-    initials: "TI",
-    image: FOUNDER_IMAGE,
-    bio: "Leads TOBEEZ's mission to make designer-grade interiors accessible to everyone through AI, expert consultations and honest pricing.",
-  },
-  ...DESIGNERS.map((designer) => ({
-    name: designer.name,
-    role: designer.title,
-    initials: designer.initials,
-    image: designer.photo,
-    // Victory's card stays lean until her details are confirmed.
-    bio: designer.id === "d1" ? undefined : designer.bio,
-    chips: [`${designer.experienceYears}+ years experience`, ...designer.certifications],
-  })),
-];
+const team = DESIGNERS.map((designer) => ({
+  name: designer.name,
+  role: designer.title,
+  initials: designer.initials,
+  image: designer.photo,
+  // Victory's card stays lean until her photo and details are confirmed.
+  bio: designer.id === "d1" ? undefined : designer.bio,
+  chips: [`${designer.experienceYears}+ years experience`, ...designer.certifications],
+}));
 
 export default function AboutPage() {
   return (
@@ -111,7 +102,7 @@ export default function AboutPage() {
       <Section className="bg-muted/30" id="team">
         <Container>
           <SectionHeading eyebrow="Meet the team" title="The people behind TOBEEZ" />
-          <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mx-auto mt-14 grid max-w-3xl gap-4 sm:grid-cols-2">
             {team.map((m) => (
               <Card key={m.name}>
                 <CardContent className="flex h-full flex-col items-center p-6 text-center">

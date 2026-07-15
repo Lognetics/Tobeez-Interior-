@@ -23,7 +23,7 @@ export type Designer = {
 
 export const DESIGNERS: Designer[] = [
   {
-    id: "d1", name: "Victory Asaboro", title: "Lead Designer, TOBEEZ Interiors", initials: "VA",
+    id: "d1", name: "Victory Asaboro", title: "Founder & Lead Designer", initials: "VA",
     rating: 4.9, projects: 20, specialties: ["Modern Luxury", "Minimalism", "3D Visualisation"], rate: 100000,
     gradient: "from-amber-300 to-orange-400", // photo pending — no confirmed image for Victory yet
     bio: "Lead Designer of TOBEEZ Interiors with qualifications in Interior Design, Project and Business Management, and a member of the Interior Designers Association of Nigeria (IDAN). Creates refined, contemporary spaces shaped by modern luxury and thoughtful minimalism — with 3D design and visualisation expertise that lets you experience your space before the transformation begins.",
