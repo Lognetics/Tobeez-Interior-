@@ -237,7 +237,7 @@ export function ConsultationBooking() {
                     ) : (
                       <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Select an available date first.</p>
                     )}
-                    <p className="mt-3 text-xs text-muted-foreground">Times shown in your local timezone. Google Calendar & Outlook sync after payment.</p>
+                    <p className="mt-3 text-xs text-muted-foreground">Times shown in your local timezone.</p>
                   </div>
                 </div>
               </section>
@@ -246,16 +246,11 @@ export function ConsultationBooking() {
             {step === 3 && consultant && (
               <section>
                 <h2 className="font-display text-lg font-semibold">Complete your booking</h2>
-                <p className="mb-4 text-sm text-muted-foreground">Secure checkout, payment is stubbed in this demo build.</p>
+                <p className="mb-4 text-sm text-muted-foreground">Secure checkout powered by Paystack.</p>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2"><Label htmlFor="name">Full name</Label><Input id="name" placeholder="Jane Doe" /></div>
                   <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" type="email" placeholder="you@email.com" /></div>
                   <div className="space-y-2 sm:col-span-2"><Label htmlFor="notes">Anything we should know? (optional)</Label><Input id="notes" placeholder="Share your goals, style or budget" /></div>
-                </div>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {["Card", "Paystack", "Flutterwave", "Bank Transfer"].map((p) => (
-                    <span key={p} className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground">{p}</span>
-                  ))}
                 </div>
               </section>
             )}
