@@ -50,9 +50,12 @@ export function isMissingConsultationsSchema(error: unknown) {
 }
 
 export function consultantIdentity(consultantId: string): ConsultantIdentity {
-  const consultant = DESIGNERS.find((designer) => designer.id === consultantId);
+  const consultant = DESIGNERS.find((designer) =>
+    designer.id === consultantId || designer.databaseId === consultantId,
+  );
   return {
-    consultantId,
+    consultantId: consultant?.id ?? consultantId,
+    consultantRecordId: consultantId,
     consultantName: consultant?.name ?? "TOBEEZ consultant",
   };
 }
@@ -60,30 +63,51 @@ export function consultantIdentity(consultantId: string): ConsultantIdentity {
 export async function consultantFor(identity: ApiIdentity) {
   const database = authenticatedDatabase(identity.accessToken);
   const { data, error } = await database
-    .from("consultant_users")
-    .select("consultant_id")
+    .from("consultant_profiles")
+    .select("id")
     .eq("user_id", identity.id)
     .maybeSingle();
 
   if (error) {
     if (isMissingConsultationsSchema(error)) {
-      throw new ConsultationServerError(
-        "The consultation database has not been activated yet.",
-        "CONSULTATIONS_NOT_CONFIGURED",
-        503,
-      );
+      // Migration 0003 used the original d1/d2 mapping table. Keep it working
+      // until the UUID consultant-profile migration has been applied.
+      const { data: legacyData, error: legacyError } = await database
+        .from("consultant_users")
+        .select("consultant_id")
+        .eq("user_id", identity.id)
+        .maybeSingle();
+      if (legacyError) {
+        if (isMissingConsultationsSchema(legacyError)) {
+          throw new ConsultationServerError(
+            "The consultation database has not been activated yet.",
+            "CONSULTATIONS_NOT_CONFIGURED",
+            503,
+          );
+        }
+        throw new ConsultationServerError("Could not verify consultant access.", "CONSULTANT_LOOKUP_FAILED", 503);
+      }
+      const legacyId = typeof legacyData?.consultant_id === "string" ? legacyData.consultant_id : "";
+      if (!legacyId) {
+        throw new ConsultationServerError(
+          "This account is not linked to a TOBEEZ consultant profile.",
+          "CONSULTANT_REQUIRED",
+          403,
+        );
+      }
+      return consultantIdentity(legacyId);
     }
     throw new ConsultationServerError("Could not verify consultant access.", "CONSULTANT_LOOKUP_FAILED", 503);
   }
-  const consultantId = typeof data?.consultant_id === "string" ? data.consultant_id : "";
-  if (!consultantId) {
+  const consultantRecordId = typeof data?.id === "string" ? data.id : "";
+  if (!consultantRecordId) {
     throw new ConsultationServerError(
       "This account is not linked to a TOBEEZ consultant profile.",
       "CONSULTANT_REQUIRED",
       403,
     );
   }
-  return consultantIdentity(consultantId);
+  return consultantIdentity(consultantRecordId);
 }
 
 function stringValue(record: UnknownRecord, key: string) {

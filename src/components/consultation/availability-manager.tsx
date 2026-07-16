@@ -35,7 +35,7 @@ export function AvailabilityManager() {
             .map((entry) => [entry.weekday as number, entry.slots]),
         ));
         if (result.source === "fallback") {
-          setMessage({ tone: "error", text: "Apply migration 0003 before setting live availability." });
+          setMessage({ tone: "error", text: "Apply the consultation migrations through 0004 before setting live availability." });
         }
       })
       .catch((error) => setMessage({ tone: "error", text: error instanceof Error ? error.message : "Availability could not be loaded." }))

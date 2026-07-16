@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     const { data, error } = await database
       .from("bookings")
       .select("*")
-      .eq("consultant_id", consultant.consultantId)
+      .eq("consultant_id", consultant.consultantRecordId)
       .order("date_iso", { ascending: true })
       .order("time", { ascending: true });
     if (error) {

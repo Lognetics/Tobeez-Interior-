@@ -68,7 +68,7 @@ export async function GET(request: Request) {
     const { data, error } = await database
       .from("consultant_availability")
       .select("date_iso,weekday,slots")
-      .eq("consultant_id", consultant.consultantId)
+      .eq("consultant_id", consultant.consultantRecordId)
       .order("weekday", { ascending: true });
     if (error) {
       if (isMissingConsultationsSchema(error)) {
@@ -102,7 +102,7 @@ export async function PUT(request: Request) {
     const { error: deleteError } = await database
       .from("consultant_availability")
       .delete()
-      .eq("consultant_id", consultant.consultantId)
+      .eq("consultant_id", consultant.consultantRecordId)
       .is("date_iso", null);
     if (deleteError) {
       if (isMissingConsultationsSchema(deleteError)) {
@@ -119,7 +119,7 @@ export async function PUT(request: Request) {
     if (activeDays.length) {
       const { error: insertError } = await database.from("consultant_availability").insert(
         activeDays.map((entry) => ({
-          consultant_id: consultant.consultantId,
+          consultant_id: consultant.consultantRecordId,
           weekday: entry.weekday,
           slots: [...new Set(entry.slots)].sort(),
           updated_at: new Date().toISOString(),

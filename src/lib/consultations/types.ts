@@ -35,6 +35,7 @@ export type AvailabilityEntry = {
 
 export type ConsultantIdentity = {
   consultantId: string;
+  consultantRecordId: string;
   consultantName: string;
 };
 

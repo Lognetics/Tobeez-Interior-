@@ -58,8 +58,8 @@ export function DesignerPortalGate({ children }: { children: React.ReactNode }) 
         icon={<AlertCircle className="size-7" />}
         title={notConfigured ? "Consultant portal setup is incomplete" : "This is not a consultant account"}
         description={notConfigured
-          ? "Apply Supabase migrations 0002 and 0003, then link this account in consultant_users."
-          : "This account is signed in, but it is not linked to Victory or Joy. Ask an administrator to add the consultant mapping."}
+          ? "Apply the Supabase migrations through 0004, then assign this account to Victory or Joy."
+          : "This account is signed in, but it is not assigned to a consultant profile. Ask an administrator to assign it to Victory or Joy."}
         action={<Button asChild variant="outline"><Link href="/dashboard">Go to client dashboard</Link></Button>}
       />
     );

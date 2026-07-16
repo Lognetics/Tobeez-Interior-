@@ -1,6 +1,7 @@
 /** Consultants (interior experts) for the premium booking platform. */
 export type Designer = {
   id: string;
+  databaseId: string;
   name: string;
   title: string;
   initials: string;
@@ -23,7 +24,7 @@ export type Designer = {
 
 export const DESIGNERS: Designer[] = [
   {
-    id: "d1", name: "Victory Asaboro", title: "Lead Designer, TOBEEZ Interiors", initials: "VA",
+    id: "d1", databaseId: "f335807b-f035-479a-96e0-f8181d0d5bbe", name: "Victory Asaboro", title: "Lead Designer, TOBEEZ Interiors", initials: "VA",
     rating: 4.9, projects: 20, specialties: ["Modern Luxury", "Minimalism", "3D Visualisation"], rate: 100000,
     gradient: "from-amber-300 to-orange-400", photo: "/gallery/founder.jpg",
     bio: "Lead Designer of TOBEEZ Interiors with qualifications in Interior Design, Project and Business Management, and a member of the Interior Designers Association of Nigeria (IDAN). Creates refined, contemporary spaces shaped by modern luxury and thoughtful minimalism — with 3D design and visualisation expertise that lets you experience your space before the transformation begins.",
@@ -31,7 +32,7 @@ export const DESIGNERS: Designer[] = [
     responseTime: "under 4 hours", successRate: 98, completedConsultations: 20, online: true,
   },
   {
-    id: "d2", name: "Joy", title: "Interior Designer", initials: "J",
+    id: "d2", databaseId: "d1bcccf3-011d-4f04-8324-0352498870ef", name: "Joy", title: "Interior Designer", initials: "J",
     rating: 4.9, projects: 15, specialties: ["Design Reviews", "Space Planning"], rate: 100000,
     gradient: "from-emerald-300 to-teal-400", photo: "/coporate/joy.png",
     bio: "Interior Designer with over six years of experience and a Master's degree in Interior Design. Helps homeowners, business owners and developers make smart design decisions through professional design reviews and space-planning consultations — clear, expert guidance before you invest your time and money.",

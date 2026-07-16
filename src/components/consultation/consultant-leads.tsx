@@ -21,7 +21,7 @@ const statusVariant: Record<BookingStatus, "default" | "success" | "muted" | "ou
 export function ConsultantLeads({ scheduleOnly = false }: { scheduleOnly?: boolean }) {
   const addNotification = useAppData((state) => state.addNotification);
   const [bookings, setBookings] = React.useState<ConsultationBooking[]>([]);
-  const [consultantId, setConsultantId] = React.useState("");
+  const [consultantName, setConsultantName] = React.useState("");
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
   const [updating, setUpdating] = React.useState<string | null>(null);
@@ -31,8 +31,8 @@ export function ConsultantLeads({ scheduleOnly = false }: { scheduleOnly?: boole
     try {
       const result = await listConsultantLeads();
       setBookings(result.bookings);
-      setConsultantId(result.consultant.consultantId);
-      setError(result.source === "fallback" ? "Apply migration 0003 to activate consultation leads." : "");
+      setConsultantName(result.consultant.consultantName);
+      setError(result.source === "fallback" ? "Apply the consultation migrations through 0004 to activate live leads." : "");
 
       if (notifyNew && result.source === "database") {
         const storageKey = `tobeez-seen-leads-${result.consultant.consultantId}`;
@@ -129,7 +129,11 @@ export function ConsultantLeads({ scheduleOnly = false }: { scheduleOnly?: boole
         <BookingSection title="Recent history" empty="" bookings={history.slice(0, 12)} />
       )}
 
-      {consultantId && <p className="text-xs text-muted-foreground">Showing the database records addressed to consultant profile {consultantId}.</p>}
+      {consultantName && (
+        <p className="text-xs text-muted-foreground">
+          Live consultation records for {consultantName}.
+        </p>
+      )}
     </div>
   );
 }

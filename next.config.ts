@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // The development toolbar covered the signed-in user controls in the sidebar.
+  // Compile and runtime errors still surface when the indicator is disabled.
+  devIndicators: false,
 };
 
 export default nextConfig;
