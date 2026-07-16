@@ -1,17 +1,15 @@
 import { DashHeader, EmptyState } from "@/components/dashboard/widgets";
-import { Button } from "@/components/ui/button";
 
 export const metadata = { title: "Reviews" };
 
 export default function ReviewsPage() {
   return (
     <>
-      <DashHeader title="Reviews" subtitle="This section is scaffolded and ready for its features." />
+      <DashHeader title="Reviews" subtitle="On the TOBEEZ roadmap." />
       <EmptyState
         icon="Star"
-        title="Nothing here yet"
-        description="Reviews content will appear here. This is a working shell wired into navigation, auth and the design system."
-        action={<Button variant="outline">Learn more</Button>}
+        title="Client reviews are coming soon"
+        description="After a completed session, clients will be invited to leave a rating and review, and they'll collect here and on your public profile."
       />
     </>
   );

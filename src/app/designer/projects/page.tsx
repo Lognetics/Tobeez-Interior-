@@ -1,17 +1,15 @@
 import { DashHeader, EmptyState } from "@/components/dashboard/widgets";
-import { Button } from "@/components/ui/button";
 
 export const metadata = { title: "Projects" };
 
 export default function ProjectsPage() {
   return (
     <>
-      <DashHeader title="Projects" subtitle="This section is scaffolded and ready for its features." />
+      <DashHeader title="Projects" subtitle="On the TOBEEZ roadmap." />
       <EmptyState
         icon="FolderKanban"
-        title="Nothing here yet"
-        description="Projects content will appear here. This is a working shell wired into navigation, auth and the design system."
-        action={<Button variant="outline">Learn more</Button>}
+        title="Project engagements are coming soon"
+        description="Accepted consultations will be convertible into managed projects — timeline, milestones and payments in one place. Until then, run engagements from your Consultations schedule."
       />
     </>
   );

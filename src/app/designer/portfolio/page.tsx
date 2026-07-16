@@ -1,17 +1,15 @@
 import { DashHeader, EmptyState } from "@/components/dashboard/widgets";
-import { Button } from "@/components/ui/button";
 
 export const metadata = { title: "Portfolio" };
 
 export default function PortfolioPage() {
   return (
     <>
-      <DashHeader title="Portfolio" subtitle="This section is scaffolded and ready for its features." />
+      <DashHeader title="Portfolio" subtitle="On the TOBEEZ roadmap." />
       <EmptyState
         icon="Images"
-        title="Nothing here yet"
-        description="Portfolio content will appear here. This is a working shell wired into navigation, auth and the design system."
-        action={<Button variant="outline">Learn more</Button>}
+        title="Your portfolio manager is coming soon"
+        description="You'll publish project photos and 3D renders here, and they'll appear on your public consultant profile. For now, send new work to the TOBEEZ team to feature on the site."
       />
     </>
   );
