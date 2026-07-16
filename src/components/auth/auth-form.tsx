@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2, Loader2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
+import { getConsultantIdentity } from "@/lib/consultations/client";
 import { useSession } from "@/lib/session";
 import { supabase } from "@/lib/supabase/client";
 
@@ -53,12 +54,32 @@ export function AuthForm({
   const [error, setError] = React.useState("");
   const [notice, setNotice] = React.useState("");
   const isLogin = mode === "login";
+  const routing = React.useRef(false);
+
+  const routeToWorkspace = React.useCallback(async () => {
+    if (routing.current) return;
+    routing.current = true;
+
+    let destination = nextPath;
+    // Keep explicit deep links, but resolve the default landing page by role.
+    if (nextPath === "/dashboard") {
+      try {
+        await getConsultantIdentity();
+        destination = "/designer";
+      } catch {
+        destination = "/dashboard";
+      }
+    }
+
+    router.replace(destination);
+    router.refresh();
+  }, [nextPath, router]);
 
   // Already signed in — including OAuth returns the proxy bounced here before
-  // the browser could detect the new session — so go straight to the workspace.
+  // the browser could detect the new session — so resolve the correct workspace.
   React.useEffect(() => {
-    if (authReady && user) router.replace(nextPath);
-  }, [authReady, user, nextPath, router]);
+    if (authReady && user) void routeToWorkspace();
+  }, [authReady, user, routeToWorkspace]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -97,8 +118,7 @@ export function AuthForm({
 
       const verifiedName = String(result.data.user?.user_metadata?.full_name || name);
       signIn({ name: verifiedName, email });
-      router.replace(nextPath);
-      router.refresh();
+      await routeToWorkspace();
     } catch (authError) {
       setError(authErrorMessage(authError, isLogin ? "login" : "signup"));
       setLoading(false);
@@ -110,7 +130,9 @@ export function AuthForm({
     setError("");
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}${nextPath}` },
+      options: {
+        redirectTo: `${window.location.origin}/login?next=${encodeURIComponent(nextPath)}`,
+      },
     });
     if (oauthError) {
       setError(authErrorMessage(oauthError, "oauth"));

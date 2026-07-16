@@ -10,6 +10,7 @@ import { Logo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
 import { Button } from "@/components/ui/button";
+import { getConsultantIdentity } from "@/lib/consultations/client";
 import type { DashNavItem } from "@/lib/dashboard-nav";
 import { useSession } from "@/lib/session";
 import { supabase } from "@/lib/supabase/client";
@@ -51,6 +52,7 @@ export function DashboardShell({
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [signingOut, setSigningOut] = React.useState(false);
+  const [consultantName, setConsultantName] = React.useState("");
   const settingsHref = nav.find((item) => item.label === "Settings")?.href;
 
   React.useEffect(() => {
@@ -64,6 +66,20 @@ export function DashboardShell({
   const sessionUser = useSession((s) => s.user);
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
+
+  const isClientView = role.toLowerCase() === "client";
+  React.useEffect(() => {
+    if (!isClientView || !sessionUser) return;
+    let active = true;
+    getConsultantIdentity()
+      .then(({ consultant }) => {
+        if (active) setConsultantName(consultant.consultantName);
+      })
+      .catch(() => {
+        if (active) setConsultantName("");
+      });
+    return () => { active = false; };
+  }, [isClientView, sessionUser]);
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -80,9 +96,42 @@ export function DashboardShell({
 
   // On the client dashboard, reflect the actually signed-in user.
   const display =
-    mounted && role.toLowerCase() === "client" && sessionUser
+    mounted && isClientView && sessionUser
       ? { name: sessionUser.name, initials: sessionUser.initials, avatarUrl: sessionUser.avatarUrl }
       : { ...user, avatarUrl: undefined as string | undefined };
+
+  const workspaceSwitch = isClientView && consultantName
+    ? {
+        href: "/designer",
+        label: "Consultant portal",
+        detail: consultantName,
+        icon: Icons.BriefcaseBusiness,
+      }
+    : role.toLowerCase() === "consultant"
+      ? {
+          href: "/dashboard",
+          label: "Client workspace",
+          detail: "Bookings and purchases",
+          icon: Icons.UserRound,
+        }
+      : null;
+  const displayRole = isClientView && consultantName ? "Consultant · Client view" : role;
+
+  const WorkspaceSwitch = workspaceSwitch ? (
+    <Link
+      href={workspaceSwitch.href}
+      className="mb-3 flex items-center gap-3 rounded-xl border border-primary/25 bg-primary/10 px-3 py-3 text-sm transition-colors hover:border-primary/45 hover:bg-primary/15"
+    >
+      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
+        <workspaceSwitch.icon className="size-4.5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold text-foreground">{workspaceSwitch.label}</span>
+        <span className="block truncate text-xs text-muted-foreground">{workspaceSwitch.detail}</span>
+      </span>
+      <Icons.ArrowRight className="size-4 shrink-0 text-primary" />
+    </Link>
+  ) : null;
 
   const NavLinks = (
     <nav className="space-y-1">
@@ -111,13 +160,13 @@ export function DashboardShell({
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-border bg-card lg:flex">
         <div className="border-b border-border px-5 py-4"><Logo /></div>
-        <div className="flex-1 overflow-y-auto p-3">{NavLinks}</div>
+        <div className="flex-1 overflow-y-auto p-3">{WorkspaceSwitch}{NavLinks}</div>
         <div className="border-t border-border p-3">
           <div className="flex items-center gap-3 rounded-xl px-3 py-2">
             <AvatarBadge name={display.name} initials={display.initials} avatarUrl={display.avatarUrl} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{display.name}</p>
-              <p className="text-xs capitalize text-muted-foreground">{role}</p>
+              <p className="text-xs text-muted-foreground">{displayRole}</p>
             </div>
             <button
               onClick={handleSignOut}
@@ -145,7 +194,7 @@ export function DashboardShell({
                 <Logo />
                 <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)}><X /></Button>
               </div>
-              <div className="flex-1 overflow-y-auto p-3" onClick={() => setMobileOpen(false)}>{NavLinks}</div>
+              <div className="flex-1 overflow-y-auto p-3" onClick={() => setMobileOpen(false)}>{WorkspaceSwitch}{NavLinks}</div>
               <div className="border-t border-border p-3">
                 <button
                   onClick={handleSignOut}
@@ -187,7 +236,7 @@ export function DashboardShell({
                   <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
                     <div className="border-b border-border px-4 py-3">
                       <p className="truncate text-sm font-medium">{display.name}</p>
-                      <p className="text-xs capitalize text-muted-foreground">{role}</p>
+                      <p className="text-xs text-muted-foreground">{displayRole}</p>
                     </div>
                     <div className="p-1.5">
                       {settingsHref && (
@@ -197,6 +246,15 @@ export function DashboardShell({
                           className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                         >
                           <Icons.Settings className="size-4" /> Settings
+                        </Link>
+                      )}
+                      {workspaceSwitch && (
+                        <Link
+                          href={workspaceSwitch.href}
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                          <workspaceSwitch.icon className="size-4" /> {workspaceSwitch.label}
                         </Link>
                       )}
                       <button
