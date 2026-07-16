@@ -24,12 +24,32 @@ function nowLabel() {
   return new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
+function consultantUnlocked(conversation: Conversation, now: number) {
+  if (conversation.bookingStatus && !["confirmed", "completed"].includes(conversation.bookingStatus)) return false;
+  const unlockValue = conversation.unlockAtIso ?? conversation.unlockDateIso;
+  if (!unlockValue) return true;
+  const unlockTime = new Date(unlockValue.length === 10 ? `${unlockValue}T00:00:00` : unlockValue).getTime();
+  return !Number.isNaN(unlockTime) && unlockTime <= now;
+}
+
+function consultantUnlockLabel(conversation: Conversation) {
+  const unlockValue = conversation.unlockAtIso ?? conversation.unlockDateIso;
+  if (!unlockValue) return "the scheduled time";
+  const date = new Date(unlockValue.length === 10 ? `${unlockValue}T00:00:00` : unlockValue);
+  if (Number.isNaN(date.getTime())) return "the scheduled time";
+  return date.toLocaleString("en-GB", {
+    weekday: "short", day: "numeric", month: "short",
+    ...(conversation.unlockAtIso ? { hour: "2-digit", minute: "2-digit" } : {}),
+  });
+}
+
 export function Messages() {
   const stored = useAppData((s) => s.conversations);
   const conversations = stored.length ? stored : [DEMO_CONV];
   const [activeId, setActiveId] = React.useState(conversations[0].id);
   const active = conversations.find((c) => c.id === activeId) ?? conversations[0];
-  const consultantActive = !active.unlockDateIso || active.unlockDateIso <= new Date().toISOString().slice(0, 10);
+  const [now, setNow] = React.useState(() => Date.now());
+  const consultantActive = consultantUnlocked(active, now);
 
   const [threads, setThreads] = React.useState<Record<string, Msg[]>>({});
   const [input, setInput] = React.useState("");
@@ -45,13 +65,18 @@ export function Messages() {
       id: "seed", from: "ai" as const, time: nowLabel(),
       text: consultantActive
         ? `Hi! ${active.consultantName} is available now. How can we help with your ${active.subject.toLowerCase()}?`
-        : `Hi 👋 I'm TOBEEZ AI. I'll assist you until ${active.consultantName} joins on your consultation date. Ask me anything about design, budget or materials, or share a photo.`,
+        : `Hi 👋 I'm TOBEEZ AI. I'll assist you until ${active.consultantName} joins at ${consultantUnlockLabel(active)} after accepting the booking. Ask me anything about design, budget or materials, or share a photo.`,
     },
   ];
 
   React.useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length, typing, activeId]);
+
+  React.useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   function setThread(id: string, updater: (m: Msg[]) => Msg[]) {
     setThreads((t) => ({ ...t, [id]: updater(t[id] ?? messages) }));
@@ -108,7 +133,7 @@ export function Messages() {
         </div>
         <div className="flex-1 overflow-y-auto p-2">
           {conversations.map((c) => {
-            const unlocked = !c.unlockDateIso || c.unlockDateIso <= new Date().toISOString().slice(0, 10);
+            const unlocked = consultantUnlocked(c, now);
             return (
               <button key={c.id} onClick={() => setActiveId(c.id)}
                 className={cn("flex w-full items-center gap-3 rounded-2xl p-3 text-left transition-colors", c.id === activeId ? "bg-muted" : "hover:bg-muted/60")}>
@@ -142,14 +167,14 @@ export function Messages() {
             </div>
           </div>
           <div className="flex gap-1">
-            <Button variant="ghost" size="icon" aria-label="Voice call" onClick={() => setCall("voice")}><Phone /></Button>
-            <Button variant="ghost" size="icon" aria-label="Video call" onClick={() => setCall("video")}><Video /></Button>
+            <Button variant="ghost" size="icon" aria-label="Voice call" title={consultantActive ? "Start voice call" : "Available at the accepted session time"} disabled={!consultantActive} onClick={() => setCall("voice")}><Phone /></Button>
+            <Button variant="ghost" size="icon" aria-label="Video call" title={consultantActive ? "Start video call" : "Available at the accepted session time"} disabled={!consultantActive} onClick={() => setCall("video")}><Video /></Button>
           </div>
         </header>
 
         {!consultantActive && (
           <div className="flex items-center gap-2 border-b border-border bg-primary/5 px-4 py-2 text-xs text-muted-foreground">
-            <Bot className="size-4 text-primary" /> AI is assisting until {active.consultantName.split(" ")[0]} joins on your consultation date.
+            <Bot className="size-4 text-primary" /> AI is assisting until {active.consultantName.split(" ")[0]} joins at {consultantUnlockLabel(active)} after accepting the booking.
           </div>
         )}
 

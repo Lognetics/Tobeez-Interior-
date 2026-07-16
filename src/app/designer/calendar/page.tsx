@@ -1,18 +1,13 @@
-import { DashHeader, EmptyState } from "@/components/dashboard/widgets";
-import { Button } from "@/components/ui/button";
+import { AvailabilityManager } from "@/components/consultation/availability-manager";
+import { DashHeader } from "@/components/dashboard/widgets";
 
 export const metadata = { title: "Calendar" };
 
 export default function CalendarPage() {
   return (
     <>
-      <DashHeader title="Calendar" subtitle="This section is scaffolded and ready for its features." />
-      <EmptyState
-        icon="Calendar"
-        title="Nothing here yet"
-        description="Calendar content will appear here. This is a working shell wired into navigation, auth and the design system."
-        action={<Button variant="outline">Learn more</Button>}
-      />
+      <DashHeader title="Availability" subtitle="Control the weekly dates and times clients can book." />
+      <AvailabilityManager />
     </>
   );
 }

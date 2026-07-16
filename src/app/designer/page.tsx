@@ -1,73 +1,95 @@
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+import { Loader2 } from "lucide-react";
 import { DashHeader, StatCard } from "@/components/dashboard/widgets";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { listConsultantLeads } from "@/lib/consultations/client";
+import type { ConsultationBooking } from "@/lib/consultations/types";
 import { formatCurrency } from "@/lib/utils";
 
-const leads = [
-  { client: "Chidi N.", project: "4-Bed Villa · Luxury", value: 42000000, status: "New" },
-  { client: "Grace A.", project: "Boutique Café", value: 12500000, status: "Contacted" },
-  { client: "Bola T.", project: "Penthouse Upgrade", value: 28000000, status: "Proposal" },
-];
-
 export default function DesignerOverview() {
+  const [bookings, setBookings] = React.useState<ConsultationBooking[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [now] = React.useState(() => Date.now());
+
+  React.useEffect(() => {
+    listConsultantLeads()
+      .then((result) => setBookings(result.bookings))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const pending = bookings.filter((booking) => booking.status === "pending");
+  const confirmed = bookings.filter((booking) => booking.status === "confirmed");
+  const upcoming = confirmed.filter((booking) => new Date(`${booking.dateIso}T${booking.time}:00`).getTime() >= now);
+  const confirmedValue = confirmed.reduce((total, booking) => total + booking.amount, 0);
+
   return (
     <>
-      <DashHeader title="Studio overview" subtitle="Your leads, consultations and earnings at a glance." />
+      <DashHeader title="Consultant overview" subtitle="Live consultation requests and schedule totals." />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Active Projects" value="8" delta={15} icon="FolderKanban" />
-        <StatCard label="New Leads" value="12" delta={22} icon="Target" />
-        <StatCard label="This Month" value={formatCurrency(3200000)} delta={9} icon="Wallet" />
-        <StatCard label="Avg Rating" value="4.9" delta={2} icon="Star" />
-      </div>
+      {loading ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Loading live records…</div>
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="Pending paid leads" value={String(pending.length)} icon="Target" />
+            <StatCard label="Upcoming sessions" value={String(upcoming.length)} icon="CalendarClock" />
+            <StatCard label="Confirmed booking value" value={formatCurrency(confirmedValue)} icon="Wallet" />
+            <StatCard label="All consultation records" value={String(bookings.length)} icon="ListChecks" />
+          </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardContent className="p-6">
-            <h2 className="mb-4 font-display font-semibold">Incoming leads</h2>
-            <div className="overflow-hidden rounded-2xl border border-border">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50 text-left text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Client</th>
-                    <th className="px-4 py-3 font-medium">Project</th>
-                    <th className="px-4 py-3 font-medium">Value</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {leads.map((l) => (
-                    <tr key={l.client}>
-                      <td className="px-4 py-3 font-medium">{l.client}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{l.project}</td>
-                      <td className="px-4 py-3 tabular-nums">{formatCurrency(l.value)}</td>
-                      <td className="px-4 py-3"><Badge variant={l.status === "New" ? "default" : "muted"}>{l.status}</Badge></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <h2 className="mb-4 font-display font-semibold">Today's schedule</h2>
-            <div className="space-y-3">
-              {[
-                { time: "10:30", label: "Video · Grace A.", tone: "default" },
-                { time: "13:00", label: "Site visit · Lekki", tone: "muted" },
-                { time: "16:00", label: "Call · Bola T.", tone: "muted" },
-              ].map((s) => (
-                <div key={s.time} className="flex items-center gap-3 rounded-xl border border-border p-3">
-                  <span className="font-display text-sm font-semibold text-primary">{s.time}</span>
-                  <span className="text-sm">{s.label}</span>
+          <div className="mt-6 grid gap-6 lg:grid-cols-3">
+            <Card className="lg:col-span-2">
+              <CardContent className="p-6">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <h2 className="font-display font-semibold">Paid leads awaiting response</h2>
+                  <Button asChild size="sm" variant="outline"><Link href="/designer/leads">Open leads</Link></Button>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                {pending.length === 0 ? (
+                  <p className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">No pending leads.</p>
+                ) : (
+                  <div className="overflow-hidden rounded-2xl border border-border">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/50 text-left text-muted-foreground"><tr><th className="px-4 py-3 font-medium">Client</th><th className="px-4 py-3 font-medium">Session</th><th className="px-4 py-3 font-medium">Value</th><th className="px-4 py-3 font-medium">Status</th></tr></thead>
+                      <tbody className="divide-y divide-border">
+                        {pending.slice(0, 5).map((booking) => (
+                          <tr key={booking.id}>
+                            <td className="px-4 py-3 font-medium">{booking.clientName}</td>
+                            <td className="px-4 py-3 text-muted-foreground">{booking.dateLabel} · {booking.time}</td>
+                            <td className="px-4 py-3 tabular-nums">{formatCurrency(booking.amount)}</td>
+                            <td className="px-4 py-3"><Badge>Pending</Badge></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <h2 className="font-display font-semibold">Upcoming</h2>
+                  <Button asChild size="sm" variant="outline"><Link href="/designer/consultations">Schedule</Link></Button>
+                </div>
+                <div className="space-y-3">
+                  {upcoming.length === 0 ? <p className="text-sm text-muted-foreground">No accepted upcoming sessions.</p> : upcoming.slice(0, 5).map((booking) => (
+                    <div key={booking.id} className="rounded-xl border border-border p-3">
+                      <p className="font-display text-sm font-semibold text-primary">{booking.dateLabel} · {booking.time}</p>
+                      <p className="mt-1 text-sm">{booking.clientName}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
     </>
   );
 }

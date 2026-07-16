@@ -6,6 +6,7 @@ import { SUPABASE_KEY, SUPABASE_URL } from "@/lib/supabase/config";
 export type ApiIdentity = {
   id: string;
   email: string | null;
+  name: string | null;
   accessToken: string;
 };
 
@@ -29,6 +30,13 @@ export async function authenticateApiRequest(request: Request): Promise<ApiIdent
   return {
     id: subject,
     email: typeof data.claims.email === "string" ? data.claims.email : null,
+    name:
+      typeof data.claims.user_metadata === "object" &&
+      data.claims.user_metadata !== null &&
+      "full_name" in data.claims.user_metadata &&
+      typeof data.claims.user_metadata.full_name === "string"
+        ? data.claims.user_metadata.full_name.trim() || null
+        : null,
     accessToken,
   };
 }

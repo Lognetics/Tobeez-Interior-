@@ -3,11 +3,12 @@
 import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import * as Icons from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, ArrowRight, Award, BadgeCheck, CheckCircle2, Clock, Globe,
-  MessageSquare, Search, Star, TrendingUp,
+  AlertCircle, ArrowLeft, ArrowRight, Award, BadgeCheck, CheckCircle2, Globe,
+  MessageSquare, Search, Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
@@ -15,15 +16,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AvailabilityCalendar } from "./availability-calendar";
 import { DESIGNERS, CONSULTATION_MODES, CONSULTATION_TYPES, CONSULTATION_PRICING } from "@/lib/data/designers";
+import { ConsultationApiError, createConsultation } from "@/lib/consultations/client";
 import { useAppData } from "@/lib/store/app-data";
 import { useSession } from "@/lib/session";
-import { payWithPaystack, verifyPayment } from "@/lib/paystack";
+import { payWithPaystack } from "@/lib/paystack";
 import { cn, formatCurrency } from "@/lib/utils";
 
-const TIMES = ["09:00", "10:30", "12:00", "14:00", "15:30", "17:00"];
 const STEPS = ["Type", "Consultant", "Schedule", "Payment"] as const;
 
 export function ConsultationBooking() {
+  const router = useRouter();
   const [step, setStep] = React.useState(0);
   const [type, setType] = React.useState("");
   const [typeQuery, setTypeQuery] = React.useState("");
@@ -32,14 +34,21 @@ export function ConsultationBooking() {
   const [dateIso, setDateIso] = React.useState<string | null>(null);
   const [dateLabel, setDateLabel] = React.useState("");
   const [time, setTime] = React.useState("");
+  const [availableTimes, setAvailableTimes] = React.useState<string[]>([]);
+  const [availabilitySource, setAvailabilitySource] = React.useState<"database" | "fallback">("fallback");
+  const [clientName, setClientName] = React.useState("");
+  const [notes, setNotes] = React.useState("");
   const [done, setDone] = React.useState(false);
   const [paying, setPaying] = React.useState(false);
+  const [error, setError] = React.useState("");
 
-  const addBooking = useAppData((s) => s.addBooking);
+  const upsertBooking = useAppData((s) => s.upsertBooking);
   const addNotification = useAppData((s) => s.addNotification);
   const addConversation = useAppData((s) => s.addConversation);
   const addInvoice = useAppData((s) => s.addInvoice);
-  const userEmail = useSession((s) => s.user?.email) ?? "";
+  const user = useSession((s) => s.user);
+  const authReady = useSession((s) => s.authReady);
+  const userEmail = user?.email ?? "";
 
   const consultant = DESIGNERS.find((d) => d.id === consultantId) ?? null;
   const { oldPrice, currentPrice, currency, discountLabel, offerLabel } = CONSULTATION_PRICING;
@@ -54,38 +63,66 @@ export function ConsultationBooking() {
     (step === 2 && !!dateIso && !!time) ||
     step === 3;
 
-  function confirmBooking() {
+  function confirmBooking(booking: Awaited<ReturnType<typeof createConsultation>>["booking"]) {
     if (!consultant || !dateIso) return;
-    const booking = addBooking({
-      type, consultantId: consultant.id, consultantName: consultant.name,
-      mode, dateIso, dateLabel, time, amount: sessionPrice,
-    });
+    upsertBooking(booking);
     addConversation({
       bookingId: booking.id, consultantId: consultant.id, consultantName: consultant.name,
-      subject: type, unlockDateIso: dateIso,
+      subject: type, unlockDateIso: dateIso, unlockAtIso: `${dateIso}T${time}:00`, bookingStatus: "pending",
     });
     addInvoice({ kind: "consultation", description: `${type} · ${consultant.name}`, amount: sessionPrice, ref: booking.id });
     addNotification({
-      title: "Consultation confirmed", kind: "booking", href: "/dashboard/consultations",
-      body: `Your ${type} with ${consultant.name} is booked for ${dateLabel} at ${time}.`,
+      title: "Consultation request sent", kind: "booking", href: "/dashboard/consultations",
+      body: `Your paid ${type} request for ${dateLabel} at ${time} is awaiting ${consultant.name}'s response.`,
     });
     addNotification({
       title: "AI assistant is ready", kind: "ai", href: "/dashboard/messages",
-      body: `Chat with TOBEEZ AI now. ${consultant.name.split(" ")[0]} joins on ${dateLabel}.`,
+      body: `Chat with TOBEEZ AI now. ${consultant.name.split(" ")[0]} unlocks at ${time} on ${dateLabel} once the booking is accepted.`,
     });
     setDone(true);
   }
 
   async function handlePay() {
     if (!consultant || !dateIso) return;
+    setError("");
+    if (!user) {
+      router.push("/login?next=%2Fconsultation");
+      return;
+    }
+    const resolvedClientName = clientName.trim() || user.name.trim();
+    if (resolvedClientName.length < 2) {
+      setError("Enter your full name before continuing.");
+      return;
+    }
+    if (availabilitySource !== "database") {
+      setError("Live consultant availability is not active yet, so payment has not been opened.");
+      return;
+    }
     setPaying(true);
     await payWithPaystack({
       email: userEmail,
       amount: sessionPrice,
-      metadata: { purpose: "consultation", type, consultant: consultant.name, mode },
-      onSuccess: async (ref) => { await verifyPayment(ref); setPaying(false); confirmBooking(); },
+      metadata: {
+        purpose: "consultation", type, consultantId: consultant.id,
+        consultant: consultant.name, mode, dateIso, time,
+      },
+      onSuccess: async (reference) => {
+        try {
+          const result = await createConsultation({
+            reference, consultantId: consultant.id, type, mode, dateIso, time,
+            clientName: resolvedClientName, notes: notes.trim(),
+          });
+          confirmBooking(result.booking);
+        } catch (requestError) {
+          setError(requestError instanceof ConsultationApiError
+            ? requestError.message
+            : "Payment completed, but the booking could not be saved. Keep your Paystack reference and contact TOBEEZ.");
+        } finally {
+          setPaying(false);
+        }
+      },
       onCancel: () => setPaying(false),
-      onError: () => setPaying(false),
+      onError: (message) => { setError(message); setPaying(false); },
     });
   }
 
@@ -94,17 +131,17 @@ export function ConsultationBooking() {
       <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
         className="mx-auto max-w-lg rounded-3xl border border-border bg-card p-10 text-center shadow-soft">
         <CheckCircle2 className="mx-auto size-14 text-success" />
-        <h2 className="mt-4 font-display text-2xl font-semibold">Consultation booked!</h2>
+        <h2 className="mt-4 font-display text-2xl font-semibold">Consultation request sent!</h2>
         <p className="mt-2 text-muted-foreground">
           Your <b className="text-foreground">{type}</b> with{" "}
-          <b className="text-foreground">{consultant.name}</b> is confirmed for {dateLabel} at {time}.
-          A calendar invite and meeting link have been sent to your email.
+          <b className="text-foreground">{consultant.name}</b> is requested for {dateLabel} at {time}.
+          You will see the response in your dashboard.
         </p>
         <div className="mt-5 rounded-2xl border border-border bg-muted/40 p-4 text-left text-sm">
           <p className="flex items-center gap-2 text-muted-foreground">
             <MessageSquare className="size-4 text-primary" />
-            Chat with <b className="text-foreground">TOBEEZ AI</b> right away, your consultant joins
-            automatically on the consultation date.
+            Chat with <b className="text-foreground">TOBEEZ AI</b> right away. Consultant chat unlocks
+            at the scheduled time after the request is accepted.
           </p>
         </div>
         <div className="mt-6 flex flex-col gap-2 sm:flex-row">
@@ -164,7 +201,7 @@ export function ConsultationBooking() {
             {step === 1 && (
               <section>
                 <h2 className="font-display text-lg font-semibold">Choose your consultant</h2>
-                <p className="mb-4 text-sm text-muted-foreground">Vetted experts, ranked by rating and response time.</p>
+                <p className="mb-4 text-sm text-muted-foreground">Choose Victory or Joy for your session.</p>
                 <div className="space-y-3">
                   {DESIGNERS.map((d) => (
                     <button key={d.id} onClick={() => setConsultantId(d.id)}
@@ -178,7 +215,6 @@ export function ConsultationBooking() {
                         ) : (
                           <span className={cn("grid size-16 place-items-center rounded-2xl bg-gradient-to-br font-semibold text-white", d.gradient)}>{d.initials}</span>
                         )}
-                        <span className={cn("absolute -bottom-1 -right-1 size-4 rounded-full border-2 border-card", d.online ? "bg-success" : "bg-muted-foreground")} />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
@@ -188,10 +224,7 @@ export function ConsultationBooking() {
                         <p className="text-sm text-muted-foreground">{d.title}</p>
                         <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{d.bio}</p>
                         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1"><Star className="size-3 fill-primary text-primary" />{d.rating} · {d.completedConsultations} done</span>
                           <span className="flex items-center gap-1"><Award className="size-3" />{d.experienceYears} yrs</span>
-                          <span className="flex items-center gap-1"><Clock className="size-3" />{d.responseTime}</span>
-                          <span className="flex items-center gap-1"><TrendingUp className="size-3" />{d.successRate}% success</span>
                         </div>
                       </div>
                     </button>
@@ -222,14 +255,15 @@ export function ConsultationBooking() {
                 <div className="grid gap-5 lg:grid-cols-2">
                   <div>
                     <h2 className="mb-3 font-display text-lg font-semibold">Pick a date</h2>
-                    <AvailabilityCalendar seed={Number(consultant.id.replace(/\D/g, "")) || 1} selected={dateIso}
-                      onSelect={(iso, label) => { setDateIso(iso); setDateLabel(label); setTime(""); }} />
+                    <AvailabilityCalendar key={consultant.id} consultantId={consultant.id} seed={Number(consultant.id.replace(/\D/g, "")) || 1} selected={dateIso}
+                      onSourceChange={setAvailabilitySource}
+                      onSelect={(iso, label, slots) => { setDateIso(iso); setDateLabel(label); setAvailableTimes(slots); setTime(""); }} />
                   </div>
                   <div>
                     <h2 className="mb-3 font-display text-lg font-semibold">Pick a time</h2>
                     {dateIso ? (
                       <div className="grid grid-cols-2 gap-2">
-                        {TIMES.map((t) => (
+                        {availableTimes.map((t) => (
                           <button key={t} onClick={() => setTime(t)}
                             className={cn("rounded-xl border px-4 py-3 text-sm transition-all", time === t ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:border-primary/40")}>{t}</button>
                         ))}
@@ -248,21 +282,28 @@ export function ConsultationBooking() {
                 <h2 className="font-display text-lg font-semibold">Complete your booking</h2>
                 <p className="mb-4 text-sm text-muted-foreground">Secure checkout powered by Paystack.</p>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2"><Label htmlFor="name">Full name</Label><Input id="name" placeholder="Jane Doe" /></div>
-                  <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" type="email" placeholder="you@email.com" /></div>
-                  <div className="space-y-2 sm:col-span-2"><Label htmlFor="notes">Anything we should know? (optional)</Label><Input id="notes" placeholder="Share your goals, style or budget" /></div>
+                  <div className="space-y-2"><Label htmlFor="name">Full name</Label><Input id="name" value={clientName || user?.name || ""} onChange={(event) => setClientName(event.target.value)} placeholder="Jane Doe" /></div>
+                  <div className="space-y-2"><Label htmlFor="email">Account email</Label><Input id="email" type="email" value={userEmail} placeholder="Sign in to continue" disabled /></div>
+                  <div className="space-y-2 sm:col-span-2"><Label htmlFor="notes">Anything we should know? (optional)</Label><Input id="notes" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Share your goals, style or budget" /></div>
                 </div>
+                {!user && authReady && (
+                  <div className="mt-4 flex items-start gap-2 rounded-xl border border-primary/25 bg-primary/5 p-3 text-sm">
+                    <AlertCircle className="mt-0.5 size-4 shrink-0 text-primary" />
+                    <p><button type="button" className="font-medium text-primary hover:underline" onClick={() => router.push("/login?next=%2Fconsultation")}>Sign in</button> before payment so the server can attach this booking to your account.</p>
+                  </div>
+                )}
               </section>
             )}
           </motion.div>
         </AnimatePresence>
 
-        <div className="mt-8 flex items-center justify-between border-t border-border pt-6">
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6">
+          {error && <p role="alert" className="w-full text-sm text-destructive">{error}</p>}
           <Button variant="ghost" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}><ArrowLeft /> Back</Button>
           {step < 3 ? (
             <Button onClick={() => setStep((s) => s + 1)} disabled={!canContinue}>Continue <ArrowRight /></Button>
           ) : (
-            <Button onClick={handlePay} disabled={paying}>
+            <Button onClick={handlePay} disabled={paying || !authReady}>
               {paying ? <Icons.Loader2 className="animate-spin" /> : null}
               {paying ? "Processing…" : `Pay ${formatCurrency(sessionPrice, currency)} & confirm`}
             </Button>
@@ -320,7 +361,6 @@ function ConsultantProfile({ consultant }: { consultant: (typeof DESIGNERS)[numb
         <ProfileItem icon={<Globe className="size-4" />} label="Languages" value={consultant.languages.join(", ")} />
         <ProfileItem icon={<Award className="size-4" />} label="Certifications" value={consultant.certifications.join(", ")} />
         <ProfileItem icon={<Star className="size-4" />} label="Specialties" value={consultant.specialties.join(", ")} />
-        <ProfileItem icon={<Clock className="size-4" />} label="Avg. response" value={consultant.responseTime} />
       </div>
     </motion.div>
   );

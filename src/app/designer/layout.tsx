@@ -1,10 +1,5 @@
-import { DashboardShell } from "@/components/dashboard/shell";
-import { designerNav } from "@/lib/dashboard-nav";
+import { DesignerPortalGate } from "@/components/consultation/designer-portal-gate";
 
 export default function DesignerLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <DashboardShell nav={designerNav} role="Designer" user={{ name: "Vee", initials: "V" }}>
-      {children}
-    </DashboardShell>
-  );
+  return <DesignerPortalGate>{children}</DesignerPortalGate>;
 }

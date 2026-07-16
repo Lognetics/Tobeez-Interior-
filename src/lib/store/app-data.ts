@@ -13,7 +13,9 @@ import { persist } from "zustand/middleware";
 export type Booking = {
   id: string; type: string; consultantId: string; consultantName: string;
   mode: string; dateIso: string; dateLabel: string; time: string;
-  amount: number; status: "confirmed" | "completed" | "cancelled"; createdAt: number;
+  amount: number; status: "pending" | "confirmed" | "declined" | "completed" | "cancelled"; createdAt: number;
+  clientUserId?: string; clientName?: string; clientEmail?: string;
+  paystackRef?: string; notes?: string;
 };
 
 export type AppNotification = {
@@ -24,7 +26,8 @@ export type AppNotification = {
 
 export type Conversation = {
   id: string; bookingId?: string; consultantId: string; consultantName: string;
-  subject: string; unlockDateIso?: string; createdAt: number;
+  subject: string; unlockDateIso?: string; unlockAtIso?: string; createdAt: number;
+  bookingStatus?: Booking["status"];
 };
 
 export type OrderItem = { productId: string; name: string; price: number; qty: number };
@@ -79,10 +82,14 @@ type AppState = {
 
   addOrder: (o: Omit<Order, "id" | "createdAt" | "status">) => Order;
   addBooking: (b: Omit<Booking, "id" | "createdAt" | "status">) => Booking;
+  upsertBooking: (booking: Booking) => void;
+  setBookings: (bookings: Booking[]) => void;
+  updateBooking: (id: string, patch: Partial<Booking>) => void;
   addNotification: (n: Omit<AppNotification, "id" | "createdAt" | "read">) => void;
   markAllRead: () => void;
   markRead: (id: string) => void;
   addConversation: (c: Omit<Conversation, "id" | "createdAt">) => Conversation;
+  updateConversationBookingStatus: (bookingId: string, status: Booking["status"]) => void;
   addProject: (p: Omit<Project, "id" | "createdAt" | "status" | "progress"> & { status?: ProjectStatus; progress?: number }) => Project;
   updateProject: (id: string, patch: Partial<Project>) => void;
   addEstimate: (e: Omit<SavedEstimate, "id" | "createdAt">) => SavedEstimate;
@@ -113,10 +120,19 @@ export const useAppData = create<AppState>()(
         return order;
       },
       addBooking: (b) => {
-        const booking: Booking = { ...b, id: uid("bkg"), status: "confirmed", createdAt: Date.now() };
+        const booking: Booking = { ...b, id: uid("bkg"), status: "pending", createdAt: Date.now() };
         set((s) => ({ bookings: [booking, ...s.bookings] }));
         return booking;
       },
+      upsertBooking: (booking) =>
+        set((s) => ({
+          bookings: s.bookings.some((item) => item.id === booking.id)
+            ? s.bookings.map((item) => item.id === booking.id ? booking : item)
+            : [booking, ...s.bookings],
+        })),
+      setBookings: (bookings) => set({ bookings }),
+      updateBooking: (id, patch) =>
+        set((s) => ({ bookings: s.bookings.map((booking) => booking.id === id ? { ...booking, ...patch } : booking) })),
       addNotification: (n) =>
         set((s) => ({ notifications: [{ ...n, id: uid("ntf"), read: false, createdAt: Date.now() }, ...s.notifications].slice(0, 60) })),
       markAllRead: () => set((s) => ({ notifications: s.notifications.map((n) => ({ ...n, read: true })) })),
@@ -126,6 +142,11 @@ export const useAppData = create<AppState>()(
         set((s) => ({ conversations: [conv, ...s.conversations] }));
         return conv;
       },
+      updateConversationBookingStatus: (bookingId, status) =>
+        set((s) => ({
+          conversations: s.conversations.map((conversation) =>
+            conversation.bookingId === bookingId ? { ...conversation, bookingStatus: status } : conversation),
+        })),
       addProject: (p) => {
         const project: Project = {
           ...p, id: uid("prj"), status: p.status ?? "planning", progress: p.progress ?? 5, createdAt: Date.now(),
