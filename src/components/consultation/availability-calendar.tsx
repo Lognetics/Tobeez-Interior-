@@ -180,6 +180,11 @@ export function AvailabilityCalendar({
           Preview availability is shown until the consultation migration and consultant schedule are active. Payment is blocked unless the server confirms a live slot.
         </p>
       )}
+      {source === "database" && !loading && !Object.values(availability).some((slots) => slots.length > 0) && (
+        <p className="mt-3 text-xs text-muted-foreground">
+          No open slots are published for {monthLabel} yet — try the next month or check back soon.
+        </p>
+      )}
     </div>
   );
 }
