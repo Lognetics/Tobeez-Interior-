@@ -1,3 +1,4 @@
+import Link from "next/link";
 import * as Icons from "lucide-react";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,17 +17,18 @@ export function DashHeader({ title, subtitle, action }: { title: React.ReactNode
 }
 
 export function StatCard({
-  label, value, delta, icon,
+  label, value, delta, icon, href,
 }: {
   label: string;
   value: string;
   delta?: number;
   icon: string;
+  href?: string;
 }) {
   const Icon = (Icons[icon as keyof typeof Icons] ?? Icons.Circle) as Icons.LucideIcon;
   const up = (delta ?? 0) >= 0;
-  return (
-    <Card>
+  const card = (
+    <Card className={cn(href && "transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-soft")}>
       <CardContent className="p-5">
         <div className="flex items-center justify-between">
           <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
@@ -44,6 +46,7 @@ export function StatCard({
       </CardContent>
     </Card>
   );
+  return href ? <Link href={href} className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{card}</Link> : card;
 }
 
 export function EmptyState({ icon = "Inbox", title, description, action }: { icon?: string; title: string; description?: string; action?: React.ReactNode }) {

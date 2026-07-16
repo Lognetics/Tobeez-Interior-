@@ -39,4 +39,4 @@ export type ConsultantIdentity = {
   consultantName: string;
 };
 
-export const CONSULTATION_TIMES = ["09:00", "10:30", "12:00", "14:00", "15:30", "17:00"] as const;
+export const CONSULTATION_TIMES = ["08:00", "09:00", "10:30", "12:00", "14:00", "15:30", "17:00", "18:30"] as const;

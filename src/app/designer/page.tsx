@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { DashHeader, StatCard } from "@/components/dashboard/widgets";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,7 @@ import type { ConsultationBooking } from "@/lib/consultations/types";
 import { formatCurrency } from "@/lib/utils";
 
 export default function DesignerOverview() {
+  const router = useRouter();
   const [bookings, setBookings] = React.useState<ConsultationBooking[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [now] = React.useState(() => Date.now());
@@ -36,10 +38,10 @@ export default function DesignerOverview() {
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Pending paid leads" value={String(pending.length)} icon="Target" />
-            <StatCard label="Upcoming sessions" value={String(upcoming.length)} icon="CalendarClock" />
-            <StatCard label="Confirmed booking value" value={formatCurrency(confirmedValue)} icon="Wallet" />
-            <StatCard label="All consultation records" value={String(bookings.length)} icon="ListChecks" />
+            <StatCard label="Pending paid leads" value={String(pending.length)} icon="Target" href="/designer/leads" />
+            <StatCard label="Upcoming sessions" value={String(upcoming.length)} icon="CalendarClock" href="/designer/calendar" />
+            <StatCard label="Confirmed booking value" value={formatCurrency(confirmedValue)} icon="Wallet" href="/designer/earnings" />
+            <StatCard label="All consultation records" value={String(bookings.length)} icon="ListChecks" href="/designer/consultations" />
           </div>
 
           <div className="mt-6 grid gap-6 lg:grid-cols-3">
@@ -57,7 +59,12 @@ export default function DesignerOverview() {
                       <thead className="bg-muted/50 text-left text-muted-foreground"><tr><th className="px-4 py-3 font-medium">Client</th><th className="px-4 py-3 font-medium">Session</th><th className="px-4 py-3 font-medium">Value</th><th className="px-4 py-3 font-medium">Status</th></tr></thead>
                       <tbody className="divide-y divide-border">
                         {pending.slice(0, 5).map((booking) => (
-                          <tr key={booking.id}>
+                          <tr
+                            key={booking.id}
+                            onClick={() => router.push("/designer/leads")}
+                            className="cursor-pointer transition-colors hover:bg-muted/50"
+                            title="Open in Leads to accept or decline"
+                          >
                             <td className="px-4 py-3 font-medium">{booking.clientName}</td>
                             <td className="px-4 py-3 text-muted-foreground">{booking.dateLabel} · {booking.time}</td>
                             <td className="px-4 py-3 tabular-nums">{formatCurrency(booking.amount)}</td>
