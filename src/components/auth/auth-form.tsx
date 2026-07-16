@@ -9,6 +9,34 @@ import { Input, Label } from "@/components/ui/input";
 import { useSession } from "@/lib/session";
 import { supabase } from "@/lib/supabase/client";
 
+function authErrorMessage(error: unknown, action: "login" | "signup" | "oauth") {
+  const record = error && typeof error === "object" ? error as Record<string, unknown> : null;
+  const rawMessage = error instanceof Error
+    ? error.message.trim()
+    : typeof record?.message === "string"
+      ? record.message.trim()
+      : "";
+  const status = typeof record?.status === "number" ? record.status : 0;
+  const code = typeof record?.code === "string" ? record.code : "";
+
+  if (code === "over_email_send_rate_limit") {
+    return "Too many confirmation emails were requested. Wait a few minutes, then try again.";
+  }
+  if (code === "email_address_invalid") {
+    return "Enter a valid email address.";
+  }
+  if (code === "weak_password") {
+    return rawMessage || "Choose a stronger password and try again.";
+  }
+  if (status >= 500 || !rawMessage || rawMessage === "{}" || rawMessage === "[object Object]") {
+    if (action === "signup") {
+      return "Supabase could not create the account or send its confirmation email. Check Authentication logs and the custom SMTP sender credentials, then try again.";
+    }
+    return "Authentication is temporarily unavailable. Please try again shortly.";
+  }
+  return rawMessage;
+}
+
 /** Real Supabase authentication. Protected APIs never accept a local-only session. */
 export function AuthForm({
   mode,
@@ -72,7 +100,7 @@ export function AuthForm({
       router.replace(nextPath);
       router.refresh();
     } catch (authError) {
-      setError(authError instanceof Error ? authError.message : "Authentication failed. Please try again.");
+      setError(authErrorMessage(authError, isLogin ? "login" : "signup"));
       setLoading(false);
     }
   }
@@ -85,7 +113,7 @@ export function AuthForm({
       options: { redirectTo: `${window.location.origin}${nextPath}` },
     });
     if (oauthError) {
-      setError(oauthError.message);
+      setError(authErrorMessage(oauthError, "oauth"));
       setLoading(false);
     }
   }

@@ -8,7 +8,6 @@ import { ArrowRight, ChevronLeft, ChevronRight, PlayCircle, Sparkles } from "luc
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { HERO_SLIDES } from "@/lib/gallery";
-import { cn } from "@/lib/utils";
 
 const AUTOPLAY_MS = 6000;
 
@@ -54,7 +53,8 @@ export function Hero() {
               src={slide.src}
               alt={slide.title}
               fill
-              priority={index === 0}
+              loading="eager"
+              fetchPriority={index === 0 ? "high" : "auto"}
               sizes="100vw"
               className="object-cover"
             />
