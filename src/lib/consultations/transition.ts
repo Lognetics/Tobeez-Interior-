@@ -53,7 +53,7 @@ export async function handleConsultationTransition(
     const booking = mapBooking(data[0]);
     await sendConsultationEmail({
       event: action === "accept" ? "accepted" : action === "decline" ? "declined" : "cancelled",
-      bookingId: booking.id,
+      booking,
       recipient: booking.clientEmail,
     });
     return Response.json({

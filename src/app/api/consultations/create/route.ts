@@ -136,7 +136,7 @@ export async function POST(request: Request) {
     const booking = mapBooking(data[0]);
     await sendConsultationEmail({
       event: "created",
-      bookingId: booking.id,
+      booking,
       recipient: identity.email ?? "",
     });
     return Response.json({ booking }, { status: 201 });
