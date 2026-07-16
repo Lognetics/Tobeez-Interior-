@@ -6,8 +6,12 @@
  * server-side in /api/paystack/verify. Amounts are in Naira and converted to kobo.
  */
 
-export const PAYSTACK_PUBLIC_KEY =
-  process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "pk_test_6dbcb49e0c68750fd396ec5b7f7b9ab3a1cf87f1";
+/**
+ * Must come from the environment — deliberately NO hardcoded fallback. The
+ * site now runs live keys; silently falling back to a test key would let
+ * "payments" succeed without collecting real money. Missing key fails loudly.
+ */
+export const PAYSTACK_PUBLIC_KEY = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
 
 type PaystackHandler = { openIframe: () => void };
 type PaystackPop = {
@@ -50,6 +54,10 @@ const genRef = () => `tbz_${Date.now()}_${Math.floor(Math.random() * 1_000_000)}
 
 /** Open the Paystack checkout popup for a payment. */
 export async function payWithPaystack(opts: PaystackOptions) {
+  if (!PAYSTACK_PUBLIC_KEY) {
+    opts.onError?.("Payment is temporarily unavailable. Please try again later or contact TOBEEZ.");
+    return;
+  }
   try {
     await loadScript();
   } catch {
