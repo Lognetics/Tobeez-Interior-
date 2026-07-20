@@ -332,7 +332,7 @@ export function ConsultationBooking() {
             <SummaryRow label="Date" value={dateLabel} />
             <SummaryRow label="Time" value={time} />
             <div className="space-y-2 border-t border-border pt-3">
-              {["Live expert session", "Tailored design plan", "Moodboard review", "Chat access + AI assistant"].map((f) => (
+              {["Live 2-hour expert session", "Moodboard review", "Chat access + AI assistant"].map((f) => (
                 <p key={f} className="flex items-center gap-2 text-muted-foreground"><CheckCircle2 className="size-4 text-success" /> {f}</p>
               ))}
             </div>

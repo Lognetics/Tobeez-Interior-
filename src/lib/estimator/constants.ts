@@ -59,8 +59,8 @@ export const DESIGN_STYLES = [
 ] as const;
 
 export const MATERIALS = [
-  "Tiles", "Wood", "Marble", "Granite", "Concrete", "Vinyl", "Wallpaper",
-  "Luxury Paint", "Fabric", "Leather", "Glass", "Steel", "Aluminium", "Stone", "Composite",
+  "Tiles", "Wood", "Marble", "Granite", "Concrete", "Vinyl", "SPC Flooring", "Sintered Stone",
+  "Wallpaper", "Luxury Paint", "Fabric", "Leather", "Glass", "Steel", "Aluminium", "Stone", "Composite",
 ] as const;
 
 export const FURNITURE_QUALITY = [
@@ -99,9 +99,14 @@ export const REGIONS = [
   { id: "lagos", label: "Lagos, Nigeria", multiplier: 1.2, currency: "NGN" },
   { id: "abuja", label: "Abuja, Nigeria", multiplier: 1.15, currency: "NGN" },
   { id: "ph", label: "Port Harcourt, Nigeria", multiplier: 1.05, currency: "NGN" },
+  { id: "ibadan", label: "Ibadan, Oyo", multiplier: 1.0, currency: "NGN" },
+  { id: "enugu", label: "Enugu, Nigeria", multiplier: 0.95, currency: "NGN" },
+  { id: "kano", label: "Kano, Nigeria", multiplier: 0.9, currency: "NGN" },
+  { id: "benin", label: "Benin City, Edo", multiplier: 0.95, currency: "NGN" },
+  { id: "uyo", label: "Uyo, Akwa Ibom", multiplier: 0.95, currency: "NGN" },
   { id: "accra", label: "Accra, Ghana", multiplier: 1.1, currency: "NGN" },
   { id: "nairobi", label: "Nairobi, Kenya", multiplier: 1.0, currency: "NGN" },
-  { id: "other", label: "Other Region", multiplier: 1.0, currency: "NGN" },
+  { id: "other", label: "Other Nigerian State / Region", multiplier: 0.95, currency: "NGN" },
 ] as const;
 
 /* --- Expanded questionnaire (Phase 2) --- */

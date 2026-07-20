@@ -183,7 +183,7 @@ function baseChunks(): KnowledgeChunk[] {
         `offer (previously ${formatCurrency(CONSULTATION_PRICING.oldPrice, CONSULTATION_PRICING.currency)}). ` +
         `Available modes are ${consultationModes}. The booking flow is: choose one of ` +
         `${CONSULTATION_TYPES.length} consultation types, select a consultant, choose a date and time, then pay. ` +
-        "A moodboard review and tailored plan are included in the consultation page description.",
+        "Every consultation session runs for two hours and includes a moodboard review.",
       fallbackAnswer:
         `A TOBEEZ consultation is currently listed at ${consultationPrice} under a limited-time offer. ` +
         `You can book a ${consultationModes.toLowerCase()} session, then choose the focus, consultant, date, and time.`,

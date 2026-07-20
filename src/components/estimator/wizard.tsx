@@ -56,6 +56,8 @@ export function EstimatorWizard() {
       case 8: return !!data.style;
       case 9: return (data.materials?.length ?? 0) > 0;
       case 11: return !!data.quality;
+      // Budget is required — it anchors the AI to the client's real range.
+      case 12: return !!data.budgetMin && !!data.budgetMax && data.budgetMax >= data.budgetMin;
       default: return true;
     }
   }, [step, data]);
@@ -250,8 +252,8 @@ function StepContent({ step, data, setData, toggle }: StepProps) {
       return (
         <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Minimum budget (optional)"><Input type="number" placeholder="0" value={data.budgetMin ?? ""} onChange={(e) => setData({ budgetMin: e.target.value ? Number(e.target.value) : undefined })} /></Field>
-            <Field label="Maximum budget (optional)"><Input type="number" placeholder="0" value={data.budgetMax ?? ""} onChange={(e) => setData({ budgetMax: e.target.value ? Number(e.target.value) : undefined })} /></Field>
+            <Field label="Minimum budget (₦)"><Input type="number" placeholder="e.g. 5,000,000" value={data.budgetMin ?? ""} onChange={(e) => setData({ budgetMin: e.target.value ? Number(e.target.value) : undefined })} /></Field>
+            <Field label="Maximum budget (₦)"><Input type="number" placeholder="e.g. 12,000,000" value={data.budgetMax ?? ""} onChange={(e) => setData({ budgetMax: e.target.value ? Number(e.target.value) : undefined })} /></Field>
           </div>
           <Field label="How will you fund it?"><div className="flex flex-wrap gap-2">{FINANCING.map((f) => <Chip key={f} selected={data.financing === f} onClick={() => setData({ financing: f })}>{f}</Chip>)}</div></Field>
           <Field label="Phase the project over time?"><BoolChips value={data.phased} onChange={(v) => setData({ phased: v })} yes="Yes, phase it" no="No, all at once" /></Field>

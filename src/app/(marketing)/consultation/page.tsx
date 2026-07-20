@@ -14,7 +14,7 @@ export default function ConsultationPage() {
       <PageHero
         eyebrow="Consultation"
         title="Talk to an interior expert"
-        description="Pick a session type, choose your designer and a time that works. Moodboard review and a tailored plan included."
+        description="Pick a session type, choose your designer and a time that works. Every session runs for 2 hours and includes a moodboard review."
       />
       <Container className="py-14">
         <ConsultationBooking />

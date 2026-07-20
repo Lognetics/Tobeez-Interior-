@@ -35,7 +35,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             </p>
           </div>
           <div className="flex gap-8">
-            {[["20", "Projects"], ["1", "Country"], ["4.9★", "Avg rating"]].map(([v, l]) => (
+            {[["20+", "Projects"], ["1", "Country"], ["4.9★", "Avg rating"]].map(([v, l]) => (
               <div key={l}>
                 <p className="font-display text-2xl font-bold">{v}</p>
                 <p className="text-sm text-primary-foreground/70">{l}</p>

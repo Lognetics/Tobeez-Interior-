@@ -4,7 +4,7 @@ import * as React from "react";
 import { animate, motion, useInView } from "framer-motion";
 
 const stats = [
-  { value: 20, suffix: "", label: "Projects Completed" },
+  { value: 20, suffix: "+", label: "Projects Completed" },
   { value: 1, suffix: "", label: "Country Served" },
   { value: 10, suffix: "", label: "Design Styles" },
 ];

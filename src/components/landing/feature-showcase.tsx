@@ -198,8 +198,8 @@ function EstimatorVisual() {
 
 function ConsultationVisual() {
   const consultants = [
-    { name: "Vee", title: "Principal Designer", rating: 4.9, img: "/gallery/founder.jpg", online: true },
-    { name: "Zara Khan", title: "Senior Designer", rating: 4.9, online: true },
+    { name: "Victory Asaboro", title: "Lead Designer", rating: 4.9, img: "/gallery/founder.jpg", online: true },
+    { name: "Joy", title: "Interior Designer", rating: 4.9, img: "/coporate/joy.png", online: true },
   ];
   return (
     <VisualFrame>

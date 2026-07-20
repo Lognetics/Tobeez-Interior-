@@ -6,8 +6,8 @@ export const site = {
   description:
     "Estimate the cost of furnishing any property with AI, book expert consultations, source products, and manage projects.",
   email: "hello@tobeez.interior",
-  phone: "+234 800 000 0000",
-  address: "Lekki Phase 1, Lagos, Nigeria",
+  phone: "+234 807 107 4435",
+  address: "Abuja, FCT, Nigeria",
   socials: {
     instagram: "#",
     x: "#",
